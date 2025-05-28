@@ -1,15 +1,15 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart'; // For getApplicationDocumentsDirectory
+import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 import '../models/user.dart';
 import '../models/client.dart';
-import '../utils/constants.dart'; // For UserRole
+import '../utils/constants.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
-  static Database? _database; 
+  static Database? _database;
 
   factory DatabaseHelper() {
     return _instance;
@@ -56,7 +56,8 @@ class DatabaseHelper {
       CREATE TABLE clients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        city TEXT NOT NULL
+        city TEXT NOT NULL,
+        state TEXT NOT NULL
       )
     ''');
 
@@ -64,7 +65,7 @@ class DatabaseHelper {
       'firstName': 'Super',
       'lastName': 'Admin',
       'email': 'superadmin@example.com',
-      'password': 'password', 
+      'password': 'password',
       'mobileNo': '1234567890',
       'role': UserRole.superAdmin.toShortString(),
     });
@@ -128,11 +129,7 @@ class DatabaseHelper {
 
   Future<int> deleteUser(int id) async {
     Database db = await database;
-    return await db.delete(
-      'users',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('users', where: 'id = ?', whereArgs: [id]);
   }
 
   // --- CLIENT CRUD OPERATIONS ---
@@ -162,10 +159,6 @@ class DatabaseHelper {
 
   Future<int> deleteClient(int id) async {
     Database db = await database;
-    return await db.delete(
-      'clients',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('clients', where: 'id = ?', whereArgs: [id]);
   }
 }

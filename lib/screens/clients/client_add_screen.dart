@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/client.dart';
 import '../../providers/client_provider.dart';
@@ -14,12 +13,18 @@ class ClientAddScreen extends StatefulWidget {
 class _ClientAddScreenState extends State<ClientAddScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _cityController = TextEditingController();
+
+  String? _selectedCity;
+
+  final List<String> _cities = [
+    'Vashi', 'Chembur', 'Andheri', 'Mumbai', 'Pune', 'Nagpur',
+    // Add more cities as needed
+  ];
+  final String _fixedState = 'Maharashtra';
 
   @override
   void dispose() {
     _nameController.dispose();
-    _cityController.dispose();
     super.dispose();
   }
 
@@ -31,7 +36,8 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
       );
       final newClient = Client(
         name: _nameController.text,
-        city: _cityController.text,
+        city: _selectedCity!,
+        state: _fixedState,
       );
 
       await clientProvider.addClient(newClient);
@@ -40,19 +46,21 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
         const SnackBar(content: Text('Client Added Successfully!')),
       );
 
-      context.pop();
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Add New Client')),
       body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -60,15 +68,89 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
                 children: [
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Client Name'),
+                    decoration: InputDecoration(
+                      labelText: 'Client Name',
+                      hintText: 'Enter client name',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide(
+                          color: colorScheme.outline.withAlpha(
+                            (0.5 * 255).toInt(),
+                          ),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide(
+                          color: colorScheme.primary,
+                          width: 2.0,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: colorScheme.surfaceContainerHighest.withAlpha(
+                        (0.3 * 255).toInt(),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12.0,
+                        horizontal: 16.0,
+                      ),
+                    ),
                     validator: (value) =>
                         value!.isEmpty ? 'Enter client name' : null,
                   ),
                   const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _cityController,
-                    decoration: const InputDecoration(labelText: 'City'),
-                    validator: (value) => value!.isEmpty ? 'Enter city' : null,
+
+                  DropdownButtonFormField<String>(
+                    value: _selectedCity,
+                    decoration: InputDecoration(
+                      labelText: 'Select City',
+                      hintText: 'Choose a city',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide(
+                          color: colorScheme.outline.withAlpha(
+                            (0.5 * 255).toInt(),
+                          ),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide(
+                          color: colorScheme.primary,
+                          width: 2.0,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: colorScheme.surfaceContainerHighest.withAlpha(
+                        (0.3 * 255).toInt(),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12.0,
+                        horizontal: 16.0,
+                      ),
+                    ),
+                    hint: const Text('Select City'),
+                    items: _cities.map((String city) {
+                      return DropdownMenuItem<String>(
+                        value: city,
+                        child: Text(city),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _selectedCity = newValue;
+                      });
+                    },
+                    validator: (value) =>
+                        value == null ? 'Please select a city' : null,
+                    isExpanded: true,
+                    menuMaxHeight: 200,
                   ),
                   const SizedBox(height: 32.0),
                   ElevatedButton(

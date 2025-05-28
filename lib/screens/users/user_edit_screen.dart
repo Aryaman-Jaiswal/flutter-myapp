@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
+import '../main_screen_wrapper.dart';
 
 class UserEditScreen extends StatefulWidget {
   final int userId;
@@ -19,11 +19,11 @@ class _UserEditScreenState extends State<UserEditScreen> {
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
-  late TextEditingController _passwordController; 
+  late TextEditingController _passwordController;
   late TextEditingController _mobileNoController;
-  UserRole? _selectedRole; 
+  UserRole? _selectedRole;
 
-  User? _user; 
+  User? _user;
 
   @override
   void initState() {
@@ -45,16 +45,16 @@ class _UserEditScreenState extends State<UserEditScreen> {
         _firstNameController.text = user.firstName;
         _lastNameController.text = user.lastName;
         _emailController.text = user.email;
-        _passwordController.text = user.password; 
+        _passwordController.text = user.password;
         _mobileNoController.text = user.mobileNo;
         _selectedRole = user.role;
       });
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not found.')),
-        );
-        context.pop();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('User not found.')));
+        Navigator.pop(context);
       }
     }
   }
@@ -73,13 +73,14 @@ class _UserEditScreenState extends State<UserEditScreen> {
     if (_formKey.currentState!.validate() && _user != null) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      // Check if current user is allowed to edit this user's details or role
       bool canEditProfile = authProvider.currentUser?.id == _user!.id;
-      bool canAssignRoles = authProvider.isAdmin; // Only admins can assign roles
+      bool canAssignRoles = authProvider.isAdmin;
 
       if (!canEditProfile && !canAssignRoles) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You do not have permission to edit this user.')),
+          const SnackBar(
+            content: Text('You do not have permission to edit this user.'),
+          ),
         );
         return;
       }
@@ -89,21 +90,30 @@ class _UserEditScreenState extends State<UserEditScreen> {
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
         email: _emailController.text,
-        password: _user!.password, 
+        password: _user!.password,
         mobileNo: _mobileNoController.text,
-        role: canAssignRoles ? (_selectedRole ?? _user!.role) : _user!.role, // Only update role if admin
+        role: canAssignRoles ? (_selectedRole ?? _user!.role) : _user!.role,
       );
 
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.updateUser(updatedUser);
 
-      // If the current logged-in user's own profile was updated, refresh AuthProvider
       authProvider.updateCurrentUser(updatedUser);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User updated successfully!')),
       );
-      context.pop(); // Go back to previous screen (user list or home)
+      if (authProvider.currentUser?.id == updatedUser.id &&
+          !authProvider.isAdmin) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => MainScreenWrapper(initialSelectedIndex: 1),
+          ),
+          (Route<dynamic> route) => route.isFirst,
+        );
+      } else {
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -118,92 +128,101 @@ class _UserEditScreenState extends State<UserEditScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context);
     bool canEditProfile = authProvider.currentUser?.id == _user!.id;
-    bool canAssignRoles = authProvider.isAdmin; // Only admins can assign roles
+    bool canAssignRoles = authProvider.isAdmin;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Edit User')),
       body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextFormField(
-                  controller: _firstNameController,
-                  decoration: const InputDecoration(labelText: 'First Name'),
-                  enabled: canEditProfile || canAssignRoles, // Allow admin to edit
-                  validator: (value) => value!.isEmpty ? 'Enter first name' : null,
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _lastNameController,
-                  decoration: const InputDecoration(labelText: 'Last Name'),
-                  enabled: canEditProfile || canAssignRoles,
-                  validator: (value) => value!.isEmpty ? 'Enter last name' : null,
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: canEditProfile || canAssignRoles,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Enter email';
-                    if (!value.contains('@')) return 'Enter valid email';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                // Password field is disabled for security, user should change it separately
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password (Not editable here)'),
-                  obscureText: true,
-                  enabled: false, // Don't allow editing password from here
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _mobileNoController,
-                  decoration: const InputDecoration(labelText: 'Mobile No'),
-                  keyboardType: TextInputType.phone,
-                  enabled: canEditProfile || canAssignRoles,
-                  validator: (value) => value!.isEmpty ? 'Enter mobile number' : null,
-                ),
-                const SizedBox(height: 32.0),
-
-                // Role Assignment (Only visible/editable for Admin/SuperAdmin)
-                if (canAssignRoles) ...[
-                  DropdownButtonFormField<UserRole>(
-                    value: _selectedRole,
-                    decoration: const InputDecoration(labelText: 'Assign Role'),
-                    items: UserRole.values.map((UserRole role) {
-                      return DropdownMenuItem<UserRole>(
-                        value: role,
-                        child: Text(role.toShortString()),
-                      );
-                    }).toList(),
-                    onChanged: (UserRole? newValue) {
-                      setState(() {
-                        _selectedRole = newValue;
-                      });
-                    },
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextFormField(
+                    controller: _firstNameController,
+                    decoration: const InputDecoration(labelText: 'First Name'),
+                    enabled: canEditProfile || canAssignRoles,
+                    validator: (value) =>
+                        value!.isEmpty ? 'Enter first name' : null,
+                  ),
+                  const SizedBox(height: 16.0),
+                  TextFormField(
+                    controller: _lastNameController,
+                    decoration: const InputDecoration(labelText: 'Last Name'),
+                    enabled: canEditProfile || canAssignRoles,
+                    validator: (value) =>
+                        value!.isEmpty ? 'Enter last name' : null,
+                  ),
+                  const SizedBox(height: 16.0),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: canEditProfile || canAssignRoles,
                     validator: (value) {
-                      if (value == null) {
-                        return 'Please select a role';
-                      }
+                      if (value == null || value.isEmpty) return 'Enter email';
+                      if (!value.contains('@')) return 'Enter valid email';
                       return null;
                     },
                   ),
+                  const SizedBox(height: 16.0),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Password (Not editable here)',
+                    ),
+                    obscureText: true,
+                    enabled: false,
+                  ),
+                  const SizedBox(height: 16.0),
+                  TextFormField(
+                    controller: _mobileNoController,
+                    decoration: const InputDecoration(labelText: 'Mobile No'),
+                    keyboardType: TextInputType.phone,
+                    enabled: canEditProfile || canAssignRoles,
+                    validator: (value) =>
+                        value!.isEmpty ? 'Enter mobile number' : null,
+                  ),
                   const SizedBox(height: 32.0),
-                ],
 
-                ElevatedButton(
-                  onPressed: (canEditProfile || canAssignRoles) ? _saveUser : null,
-                  child: const Text('Save Changes'),
-                ),
-              ],
+                  if (canAssignRoles) ...[
+                    DropdownButtonFormField<UserRole>(
+                      value: _selectedRole,
+                      decoration: const InputDecoration(
+                        labelText: 'Assign Role',
+                      ),
+                      items: UserRole.values.map((UserRole role) {
+                        return DropdownMenuItem<UserRole>(
+                          value: role,
+                          child: Text(role.toShortString()),
+                        );
+                      }).toList(),
+                      onChanged: (UserRole? newValue) {
+                        setState(() {
+                          _selectedRole = newValue;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null) {
+                          return 'Please select a role';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 32.0),
+                  ],
+                  ElevatedButton(
+                    onPressed: (canEditProfile || canAssignRoles)
+                        ? _saveUser
+                        : null,
+                    child: const Text('Save Changes'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

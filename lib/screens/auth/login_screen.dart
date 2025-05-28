@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:myapp/screens/auth/signup_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../main_screen_wrapper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,6 +15,23 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.isAuthenticated) {
+        final int initialTab = auth.isAdmin ? 0 : 1;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) =>
+                MainScreenWrapper(initialSelectedIndex: initialTab),
+          ),
+        );
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -31,8 +49,15 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login Successful!')),
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Login Successful!')));
+        final int initialTab = auth.isAdmin ? 0 : 1;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) =>
+                MainScreenWrapper(initialSelectedIndex: initialTab),
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -81,13 +106,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 32.0),
-                ElevatedButton(
-                  onPressed: _login,
-                  child: const Text('Login'),
-                ),
+                ElevatedButton(onPressed: _login, child: const Text('Login')),
                 TextButton(
                   onPressed: () {
-                    context.go('/signup'); // Navigate to signup page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SignupScreen()),
+                    );
                   },
                   child: const Text('Don\'t have an account? Sign Up'),
                 ),

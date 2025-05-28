@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
-import '../../providers/auth_provider.dart'; 
+import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
+import 'user_edit_screen.dart';
 
 class UserDetailScreen extends StatelessWidget {
   final int userId;
@@ -17,13 +17,18 @@ class UserDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('User Details'),
+        title: const Text('User Details'), 
         actions: [
           if (authProvider.isAdmin || authProvider.currentUser?.id == userId)
             IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () {
-                context.go('/users/$userId/edit');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UserEditScreen(userId: userId),
+                  ),
+                );
               },
             ),
         ],
@@ -70,12 +75,7 @@ class UserDetailScreen extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 16),
-            ),
-          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
         ],
       ),
     );

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
 import '../../providers/client_provider.dart';
 
@@ -36,11 +35,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: ListTile(
                   title: Text(client.name),
-                  subtitle: Text(client.city),
+                  subtitle: Text('${client.city}, ${client.state}'),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () async {
-                      // Confirm deletion
                       bool? confirmDelete = await showDialog<bool>(
                         context: context,
                         builder: (BuildContext dialogContext) {
@@ -74,9 +72,6 @@ class _ClientListScreenState extends State<ClientListScreen> {
                       }
                     },
                   ),
-                  // onTap: () {
-                  //   // Implement client detail/edit if needed
-                  // },
                 ),
               );
             },
