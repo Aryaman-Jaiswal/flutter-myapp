@@ -6,6 +6,7 @@ import 'dart:io';
 import '../models/user.dart';
 import '../models/client.dart';
 import '../utils/constants.dart';
+import '../models/project.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -59,6 +60,20 @@ class DatabaseHelper {
         city TEXT NOT NULL,
         state TEXT NOT NULL,
         mobileNo TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        taskName TEXT NOT NULL,
+        category TEXT NOT NULL,
+        clientId INTEGER NOT NULL,
+        assignedToUserId INTEGER NOT NULL,
+        deadline TEXT NOT NULL,
+        status TEXT NOT NULL,
+        FOREIGN KEY (clientId) REFERENCES clients(id) ON DELETE CASCADE,
+        FOREIGN KEY (assignedToUserId) REFERENCES users(id) ON DELETE CASCADE
       )
     ''');
 
@@ -158,8 +173,50 @@ class DatabaseHelper {
     );
   }
 
+  //--- PROJECT CRUD OPERATIONS ---
   Future<int> deleteClient(int id) async {
     Database db = await database;
     return await db.delete('clients', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> insertProject(Project project) async {
+    Database db = await database;
+    return await db.insert('projects', project.toMap());
+  }
+
+  Future<List<Project>> getProjects() async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('projects');
+    return List.generate(maps.length, (i) {
+      return Project.fromMap(maps[i]);
+    });
+  }
+
+  Future<Project?> getProjectById(int id) async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'projects',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return Project.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<int> updateProject(Project project) async {
+    Database db = await database;
+    return await db.update(
+      'projects',
+      project.toMap(),
+      where: 'id = ?',
+      whereArgs: [project.id],
+    );
+  }
+
+  Future<int> deleteProject(int id) async {
+    Database db = await database;
+    return await db.delete('projects', where: 'id = ?', whereArgs: [id]);
   }
 }

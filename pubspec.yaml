@@ -26,6 +26,7 @@ dependencies:
   country_state_city_picker: ^1.2.8
 
   animate_do: ^4.2.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -35,3 +36,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - lib/assets/images/logo.png # Make sure this path is correct

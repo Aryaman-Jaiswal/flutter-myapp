@@ -4,8 +4,10 @@ import '../providers/auth_provider.dart';
 
 import 'user_management_screen.dart';
 import 'clients/client_list_screen.dart';
+import 'projects/project_list_screen.dart';
 import 'users/user_edit_screen.dart';
 import 'auth/login_screen.dart';
+import '../utils/constants.dart';
 
 class MainScreenWrapper extends StatefulWidget {
   final int initialSelectedIndex;
@@ -40,6 +42,11 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final currentUser = authProvider.currentUser;
@@ -49,6 +56,8 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
       UserManagementScreen(),
       // Index 1: Clients/Groups
       ClientListScreen(),
+      // Index 2: Projects
+      ProjectListScreen(),
     ];
 
     List<NavigationRailDestination> railDestinations = [
@@ -60,23 +69,83 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
         icon: Icon(Icons.group),
         label: Text('Clients'),
       ),
+      NavigationRailDestination(
+        icon: Icon(Icons.folder),
+        label: Text('Projects'),
+      ),
     ];
 
     bool isExtended = MediaQuery.of(context).size.width >= 800;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FOCALWORKS'),
-        actions: [
-          if (currentUser != null)
+        backgroundColor: Colors.white,
+        elevation: 1, // Subtle shadow
+        title: Row(
+          children: [
+            // Company Logo Placeholder
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
-              child: Center(
+              child: Image.asset(
+                // Placeholder if you add logo later
+                'lib/assets/images/logo.png', // This path assumes you add an image at assets/images/logo.png
+                height: 96, // Adjust size as needed
+                width: 144,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.business,
+                    color: Colors.grey[700],
+                    size: 24,
+                  ); // Fallback icon
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          if (currentUser != null)
+            GestureDetector(
+              onTap: () {
+                // Open user profile dropdown or navigate
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16.0),
                 child: Row(
                   children: [
-                    Icon(Icons.person_outline),
-                    SizedBox(width: 8),
-                    Text(currentUser.firstName),
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.2),
+                      child: Text(
+                        currentUser.firstName[0],
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          currentUser.firstName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          currentUser.role.toShortString(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
                     PopupMenuButton<String>(
                       onSelected: (value) {
                         if (value == 'logout') {
@@ -85,17 +154,18 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
                             MaterialPageRoute(
                               builder: (context) => LoginScreen(),
                             ),
-                            (Route<dynamic> route) =>
-                                false, // Clears all routes
+                            (Route<dynamic> route) => false,
                           );
                         } else if (value == 'edit_profile') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  UserEditScreen(userId: currentUser.id!),
-                            ),
-                          );
+                          if (currentUser != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    UserEditScreen(userId: currentUser.id!),
+                              ),
+                            );
+                          }
                         }
                       },
                       itemBuilder: (BuildContext context) =>
@@ -109,7 +179,10 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
                               child: Text('Logout'),
                             ),
                           ],
-                      icon: Icon(Icons.arrow_drop_down),
+                      icon: const Icon(
+                        Icons.arrow_drop_down,
+                        color: Colors.black,
+                      ),
                     ),
                   ],
                 ),
@@ -123,31 +196,43 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
             child: NavigationRail(
               selectedIndex: _selectedIndex,
               onDestinationSelected: (int index) {
+                if (index == 0 && !authProvider.isAdmin) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'You do not have permission to access User Administration.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
                 setState(() {
                   _selectedIndex = index;
                 });
               },
-
-              extended: isExtended,
-              labelType: isExtended
-                  ? NavigationRailLabelType.none
-                  : NavigationRailLabelType.all,
+              labelType: NavigationRailLabelType
+                  .none, // Always none for a very compact rail
+              extended: false, // Always compact for this design
+              // minWidth: 72, // Default, can be smaller if desired
+              // minExtendedWidth: 200, // Not applicable if always compact
               destinations: railDestinations,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest,
+              backgroundColor: Colors.white,
               selectedIconTheme: IconThemeData(
                 color: Theme.of(context).colorScheme.primary,
               ),
               selectedLabelTextStyle: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
               ),
+              unselectedIconTheme: IconThemeData(color: Colors.grey[700]),
+              unselectedLabelTextStyle: TextStyle(color: Colors.grey[700]),
+              indicatorColor: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacity(0.1),
             ),
           ),
-          // Main content area
           Expanded(
             child: Container(
-              color: Theme.of(context).colorScheme.surface,
+              color: Colors.grey[50],
               child: IndexedStack(index: _selectedIndex, children: pages),
             ),
           ),
