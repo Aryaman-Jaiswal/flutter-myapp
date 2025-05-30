@@ -6,6 +6,7 @@ class Project {
   final String category; // e.g., Design, Frontend
   final int clientId; // ID of the client this project belongs to
   final int assignedToUserId; // ID of the user assigned to this project
+  final String startDate;
   final String deadline; // Storing as String for now, can be DateTime
   final String status; // To Do, In Progress, On Review, Ready
 
@@ -19,6 +20,7 @@ class Project {
     required this.category,
     required this.clientId,
     required this.assignedToUserId,
+    required this.startDate,
     required this.deadline,
     required this.status,
     this.description = '',
@@ -33,6 +35,7 @@ class Project {
       'category': category,
       'clientId': clientId,
       'assignedToUserId': assignedToUserId,
+      'startDate': startDate,
       'deadline': deadline,
       'status': status,
       // description and trackedTime are not stored in DB for now
@@ -47,6 +50,7 @@ class Project {
       category: map['category'],
       clientId: map['clientId'],
       assignedToUserId: map['assignedToUserId'],
+      startDate: map['startDate'],
       deadline: map['deadline'],
       status: map['status'],
       // description and trackedTime will default on load if not in map

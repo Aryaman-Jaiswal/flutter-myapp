@@ -104,6 +104,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  gantt_view:
+    dependency: "direct main"
+    description:
+      name: gantt_view
+      sha256: "8110cf2de062ee34262cb863865b36f7d6bfd73f4ae3938312bb6c484f03333c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.4"
   go_router:
     dependency: "direct main"
     description:

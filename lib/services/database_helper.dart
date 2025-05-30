@@ -70,6 +70,7 @@ class DatabaseHelper {
         category TEXT NOT NULL,
         clientId INTEGER NOT NULL,
         assignedToUserId INTEGER NOT NULL,
+        startDate TEXT NOT NULL,
         deadline TEXT NOT NULL,
         status TEXT NOT NULL,
         FOREIGN KEY (clientId) REFERENCES clients(id) ON DELETE CASCADE,

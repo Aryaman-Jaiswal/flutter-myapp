@@ -40,6 +40,7 @@ class MyApp extends StatelessWidget {
         title: 'Flutter Auth & Roles App',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
+          useMaterial3: true,
           primarySwatch: Colors.blueGrey,
           visualDensity: VisualDensity.adaptivePlatformDensity,
           primaryColor: const Color(0xFF6C63FF),

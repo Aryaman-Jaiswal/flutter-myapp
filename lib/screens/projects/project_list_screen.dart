@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/project.dart';
-import '../../models/client.dart'; // To get client name from clientId
-import '../../models/user.dart'; // To get user name from assignedToUserId
+import '../../models/client.dart';
+import '../../models/user.dart';
 import '../../providers/project_provider.dart';
 import '../../providers/client_provider.dart';
 import '../../providers/user_provider.dart';
-import 'project_add_screen.dart'; // Import for "Add task" button
+import 'project_add_screen.dart';
+import 'dart:math'; // For min/max
+import 'package:intl/intl.dart'; // For date formatting
+import 'package:gantt_view/gantt_view.dart';
+import '../../utils/gantt_helpers.dart';
 
 class ProjectListScreen extends StatefulWidget {
   const ProjectListScreen({super.key});
@@ -16,16 +20,17 @@ class ProjectListScreen extends StatefulWidget {
 }
 
 class _ProjectListScreenState extends State<ProjectListScreen> {
-  // Mock filter/view options
-  String _selectedView = 'List'; // Board, List, Timeline
+  String _selectedView = 'Board'; // Default view
   final List<String> _views = ['Board', 'List', 'Timeline'];
 
   final TextEditingController _searchController = TextEditingController();
 
+  final ScrollController _timelineHeaderScrollController = ScrollController();
+  final ScrollController _timelineBodyScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-    // Fetch all projects, clients, and users when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ProjectProvider>(context, listen: false).fetchProjects();
       Provider.of<ClientProvider>(context, listen: false).fetchClients();
@@ -39,7 +44,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     super.dispose();
   }
 
-  // Helper to get client name from ID
   String _getClientName(int clientId, List<Client> clients) {
     return clients
         .firstWhere(
@@ -55,7 +59,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
         .name;
   }
 
-  // Helper to get user name from ID
   String _getUserName(int userId, List<User> users) {
     return users
         .firstWhere(
@@ -72,17 +75,51 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
         .firstName;
   }
 
+  // Helper to get priority color (moved from project.dart to here if it needs context or is specific to UI)
+  Color _getPriorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'low':
+        return Colors.green[400]!;
+      case 'medium':
+        return Colors.orange[400]!;
+      case 'high':
+        return Colors.red[400]!;
+      default:
+        return Colors.grey[400]!;
+    }
+  }
+
+  // Helper to get dynamic colors for category chips
+  Color _getCategoryChipColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'design':
+        return Colors.orange[400]!;
+      case 'frontend':
+        return Colors.deepPurple[400]!;
+      case 'backend':
+        return Colors.blue[400]!;
+      case 'marketing':
+        return Colors.pink[400]!;
+      case 'content':
+        return Colors.brown[400]!;
+      case 'devops':
+        return Colors.cyan[400]!;
+      default:
+        return Colors.grey[400]!;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final projectProvider = Provider.of<ProjectProvider>(context);
     final clientProvider = Provider.of<ClientProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
 
-    // Filter projects based on search query
-    List<Project> filteredProjects = projectProvider.projects;
+    List<Project> projects = projectProvider.projects;
+
     if (_searchController.text.isNotEmpty) {
       final query = _searchController.text.toLowerCase();
-      filteredProjects = filteredProjects.where((project) {
+      projects = projects.where((project) {
         return project.taskName.toLowerCase().contains(query) ||
             project.category.toLowerCase().contains(query) ||
             project.deadline.toLowerCase().contains(query) ||
@@ -106,10 +143,27 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       'On Review': [],
       'Ready': [],
     };
-    for (var project in filteredProjects) {
+    for (var project in projects) {
       if (groupedProjects.containsKey(project.status)) {
         groupedProjects[project.status]!.add(project);
       }
+    }
+
+    // Determine which view to show
+    Widget currentView;
+    if (_selectedView == 'Timeline') {
+      currentView = _buildTimelineView(
+        projects,
+        clientProvider.clients,
+        userProvider.users,
+      );
+    } else {
+      // Default to Board view or 'List' if implemented
+      currentView = _buildBoardView(
+        groupedProjects,
+        clientProvider.clients,
+        userProvider.users,
+      );
     }
 
     return Container(
@@ -118,7 +172,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section 1: Breadcrumb (Home > Project)
           Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Text(
@@ -126,7 +179,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ),
-          // Section 2: Project Title and Add Task Button
           Padding(
             padding: const EdgeInsets.only(bottom: 20.0),
             child: Row(
@@ -168,12 +220,10 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
             ),
           ),
 
-          // Section 3: View Toggles (Board, List, Timeline), Search, Settings, More
           Padding(
             padding: const EdgeInsets.only(bottom: 20.0),
             child: Row(
               children: [
-                // View Toggles
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
@@ -186,7 +236,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                     onPressed: (int index) {
                       setState(() {
                         _selectedView = _views[index];
-                        // Implement view switching logic here
                       });
                     },
                     borderRadius: BorderRadius.circular(8.0),
@@ -225,7 +274,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                   ),
                 ),
                 const SizedBox(width: 20),
-                // Search Bar
                 Expanded(
                   child: TextFormField(
                     controller: _searchController,
@@ -251,7 +299,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                // Settings Button
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -270,7 +317,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                // More Options Button
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -291,169 +337,241 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
               ],
             ),
           ),
-
-          // Section 4: Project Status Sections (To Do, In Progress, etc.)
           Expanded(
-            child: ListView(
-              children: groupedProjects.keys.map((status) {
-                final projectsInStatus = groupedProjects[status]!;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: Card(
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Section Header (To Do, In Progress)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 12.0,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.keyboard_arrow_up,
-                                    color: Colors.grey[700],
-                                  ), // Collapse icon
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    status,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                      color: Colors.grey[800],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      '${projectsInStatus.length}',
-                                      style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.add, color: Colors.grey),
-                                onPressed: () {
-                                  // Add task to this specific status
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Add task to "$status"'),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        Divider(
-                          height: 1,
-                          color: Colors.grey[300],
-                        ), // Separator
-                        // Table Header Row for Projects
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 12.0,
-                          ),
-                          child: Row(
-                            children: [
-                              _projectTableHeaderCell('Task name', flex: 3),
-                              _projectTableHeaderCell('Description', flex: 4),
-                              _projectTableHeaderCell('Deadline', flex: 2),
-                              _projectTableHeaderCell('Tracked time', flex: 2),
-                              _projectTableHeaderCell('Assigned to', flex: 2),
-                              _projectTableHeaderCell(
-                                'Client',
-                                flex: 2,
-                              ), // Changed from 'Type' to 'Client'
-                              _projectTableHeaderCell(
-                                'Category',
-                                flex: 2,
-                              ), // Changed from 'Priority' to 'Category'
-                              _projectTableHeaderCell(
-                                'Priority',
-                                flex: 1,
-                              ), // Priority column
-                              _projectTableHeaderCell(
-                                '',
-                                flex: 0.5,
-                              ), // For ... icon
-                            ],
-                          ),
-                        ),
-                        Divider(height: 1, color: Colors.grey[300]),
+            child: currentView, // Display the selected view
+          ),
+        ],
+      ),
+    );
+  }
 
-                        // Project List Rows
-                        ListView.separated(
-                          shrinkWrap: true, // Important for nested ListView
-                          physics:
-                              const NeverScrollableScrollPhysics(), // Important for nested ListView
-                          itemCount: projectsInStatus.length,
-                          separatorBuilder: (context, index) =>
-                              Divider(height: 1, color: Colors.grey[200]),
-                          itemBuilder: (context, index) {
-                            final project = projectsInStatus[index];
-                            final client = clientProvider.clients.firstWhere(
-                              (c) => c.id == project.clientId,
-                              orElse: () => Client(
-                                name: 'Unknown',
-                                city: '',
-                                state: '',
-                                mobileNo: '',
-                                id: -1,
-                              ),
-                            );
-                            final assignedUser = userProvider.users.firstWhere(
-                              (u) => u.id == project.assignedToUserId,
-                              orElse: () => User(
-                                firstName: 'Unknown',
-                                lastName: '',
-                                email: '',
-                                password: '',
-                                mobileNo: '',
-                                id: -1,
-                              ),
-                            );
-
-                            return _buildProjectRow(
-                              project,
-                              client,
-                              assignedUser,
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+  // --- Helper for Board View (from previous implementation) ---
+  Widget _buildBoardView(
+    Map<String, List<Project>> groupedProjects,
+    List<Client> clients,
+    List<User> users,
+  ) {
+    return ListView(
+      children: groupedProjects.keys.map((status) {
+        final projectsInStatus = groupedProjects[status]!;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20.0),
+          child: Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
                   ),
-                );
-              }).toList(),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.keyboard_arrow_up,
+                            color: Colors.grey[700],
+                          ), // Collapse icon
+                          const SizedBox(width: 8),
+                          Text(
+                            status,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${projectsInStatus.length}',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add, color: Colors.grey),
+                        onPressed: () {
+                          // Add task to this specific status
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Add task to "$status"')),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: Colors.grey[300]),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
+                  ),
+                  child: Row(
+                    children: [
+                      _projectTableHeaderCell('Task name', flex: 3),
+                      _projectTableHeaderCell('Description', flex: 4),
+                      _projectTableHeaderCell('Deadline', flex: 2),
+                      _projectTableHeaderCell('Tracked time', flex: 2),
+                      _projectTableHeaderCell('Assigned to', flex: 2),
+                      _projectTableHeaderCell('Client', flex: 2),
+                      _projectTableHeaderCell('Category', flex: 2),
+                      _projectTableHeaderCell('Priority', flex: 1),
+                      _projectTableHeaderCell('', flex: 0.5),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: Colors.grey[300]),
+
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: projectsInStatus.length,
+                  separatorBuilder: (context, index) =>
+                      Divider(height: 1, color: Colors.grey[200]),
+                  itemBuilder: (context, index) {
+                    final project = projectsInStatus[index];
+                    final client = clients.firstWhere(
+                      (c) => c.id == project.clientId,
+                      orElse: () => Client(
+                        name: 'Unknown',
+                        city: '',
+                        state: '',
+                        mobileNo: '',
+                        id: -1,
+                      ),
+                    );
+                    final assignedUser = users.firstWhere(
+                      (u) => u.id == project.assignedToUserId,
+                      orElse: () => User(
+                        firstName: 'Unknown',
+                        lastName: '',
+                        email: '',
+                        password: '',
+                        mobileNo: '',
+                        id: -1,
+                      ),
+                    );
+
+                    return _buildProjectRow(project, client, assignedUser);
+                  },
+                ),
+              ],
             ),
           ),
+        );
+      }).toList(),
+    );
+  }
+
+  // --- NEW: Helper for Timeline View ---
+  Widget _buildTimelineView(
+    List<Project> projects,
+    List<Client> clients,
+    List<User> users,
+  ) {
+    if (projects.isEmpty) {
+      return const Center(child: Text('No projects to display in Timeline.'));
+    }
+
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+      child: GanttChart<ProjectGanttData>(
+        // Use GanttChart with our ProjectGanttData
+        rows: projects.toGanttRows(
+          clients,
+          users,
+        ), // Convert projects to Gantt rows
+        showCurrentDate: true,
+        style: GanttStyle(
+          columnWidth: 50, // Adjust column width for daily view
+          barHeight: 24, // Height of the task bars
+          timelineAxisType: TimelineAxisType.daily,
+          tooltipType: TooltipType.hover, // Show tooltip on hover/tap
+          // Use colors from your theme or specific for Gantt
+          // taskBarColor: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+          taskBarColor: const Color.fromARGB(
+            255,
+            117,
+            13,
+            214,
+          ), // Lighter task bar color
+          activityLabelColor:
+              Colors.white, // Color for "To Do", "In Progress" labels
+          taskLabelColor: const Color.fromARGB(
+            255,
+            0,
+            0,
+            0,
+          ), // Color of text on task bars
+          taskLabelBuilder: (ganttData) => Container(
+            // Customize task bar label
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text(
+              ganttData.data.project.taskName,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+                color: Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          gridColor: Colors.grey.shade200, // Light grid lines
+          taskBarRadius: 8, // Rounded corners for task bars
+          activityLabelBuilder: (activity) => Container(
+            // Customize activity group label
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              activity.label!,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade800,
+              ),
+            ),
+          ),
+          axisDividerColor: Colors.grey.shade400, // Color between days/weeks
+          tooltipColor: Colors.black.withOpacity(
+            0.8,
+          ), // Dark tooltip background
+          tooltipPadding: const EdgeInsets.symmetric(
+            horizontal: 10.0,
+            vertical: 6.0,
+          ),
+          weekendColor: Colors.grey.shade100, // Highlight weekends
+          dateLineColor: Colors.orangeAccent, // Color for today's date line
+          snapToDay: true, // Snap to day when dragging
+        ),
+        // You can add custom date lines for milestones or specific events
+        dateLines: [
+          GanttDateLine(date: DateTime.now(), width: 2, color: Colors.red),
         ],
       ),
     );
@@ -474,7 +592,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     );
   }
 
-  // Helper widget to build a single project row
+  // Helper widget to build a single project row (for Board view)
   Widget _buildProjectRow(Project project, Client client, User assignedUser) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -490,7 +608,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
           _projectTableCell(project.deadline, flex: 2),
           _projectTableCell(project.trackedTime, flex: 2),
           Expanded(
-            // Assigned To column with avatar
             flex: 2,
             child: Row(
               children: [
@@ -515,21 +632,17 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
               ],
             ),
           ),
-          _projectTableCell(client.name, flex: 2), // Client name here
+          _projectTableCell(client.name, flex: 2),
           Expanded(
-            // Category chip
             flex: 2,
             child: Align(
-              // Align chip to center or start
               alignment: Alignment.centerLeft,
               child: Chip(
                 label: Text(
                   project.category,
                   style: const TextStyle(fontSize: 10, color: Colors.white),
                 ),
-                backgroundColor: _getCategoryChipColor(
-                  project.category,
-                ), // Dynamic color for category
+                backgroundColor: _getCategoryChipColor(project.category),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 shape: RoundedRectangleBorder(
@@ -539,17 +652,17 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
             ),
           ),
           Expanded(
-            // Priority chip
             flex: 1,
             child: Align(
-              // Align chip to center or start
               alignment: Alignment.centerLeft,
               child: Chip(
                 label: Text(
                   'Low',
                   style: const TextStyle(fontSize: 10, color: Colors.white),
                 ), // Mock priority for now
-                backgroundColor: getPriorityColor('low'), // Use helper function
+                backgroundColor: _getPriorityColor(
+                  'low',
+                ), // Use helper function
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 shape: RoundedRectangleBorder(
@@ -559,12 +672,10 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
             ),
           ),
           Expanded(
-            // More options icon
             flex: 0.5.toInt(),
             child: IconButton(
               icon: const Icon(Icons.more_horiz, size: 18, color: Colors.grey),
               onPressed: () {
-                // Implement more options for the project
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('More options for ${project.taskName}'),
@@ -586,22 +697,8 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
         text,
         style: const TextStyle(fontSize: 13, color: Colors.black87),
         overflow: TextOverflow.ellipsis,
-        maxLines: 2, // Allow description to wrap
+        maxLines: 2,
       ),
     );
-  }
-
-  // Helper to get dynamic colors for category chips
-  Color _getCategoryChipColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'design':
-        return Colors.orange[400]!;
-      case 'frontend':
-        return Colors.deepPurple[400]!;
-      case 'backend':
-        return Colors.blue[400]!;
-      default:
-        return Colors.grey[400]!;
-    }
   }
 }

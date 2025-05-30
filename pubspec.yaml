@@ -28,6 +28,8 @@ dependencies:
   animate_do: ^4.2.0
   intl: ^0.20.2
 
+  gantt_view: ^0.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart' show DateFormat; // For date formatting
+import 'package:intl/intl.dart'; // For date formatting
 
 import '../../models/project.dart';
 import '../../models/client.dart';
@@ -30,6 +30,7 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
 
   Client? _selectedClient;
   User? _assignedToUser;
+  DateTime? _selectedStartDate; // NEW: Start Date
   DateTime? _selectedDeadline;
 
   final List<String> _categories = [
@@ -68,16 +69,52 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
     super.dispose();
   }
 
-  Future<void> _selectDeadline(BuildContext context) async {
+  Future<void> _selectDate(
+    BuildContext context, {
+    required bool isStartDate,
+  }) async {
+    DateTime? initialDate = DateTime.now();
+    if (isStartDate) {
+      initialDate = _selectedStartDate ?? DateTime.now();
+    } else {
+      initialDate =
+          _selectedDeadline ??
+          DateTime.now().add(
+            const Duration(days: 7),
+          ); // Default 7 days from now for deadline
+    }
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDeadline ?? DateTime.now(),
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      initialDate: initialDate,
+      firstDate: DateTime.now().subtract(
+        const Duration(days: 365 * 2),
+      ), // 2 years back
+      lastDate: DateTime.now().add(
+        const Duration(days: 365 * 5),
+      ), // 5 years forward
     );
-    if (picked != null && picked != _selectedDeadline) {
+    if (picked != null) {
       setState(() {
-        _selectedDeadline = picked;
+        if (isStartDate) {
+          _selectedStartDate = picked;
+          // Ensure deadline is not before start date
+          if (_selectedDeadline != null &&
+              _selectedDeadline!.isBefore(picked)) {
+            _selectedDeadline = picked.add(
+              const Duration(days: 1),
+            ); // Set deadline to next day
+          }
+        } else {
+          _selectedDeadline = picked;
+          // Ensure start date is not after deadline
+          if (_selectedStartDate != null &&
+              _selectedStartDate!.isAfter(picked)) {
+            _selectedStartDate = picked.subtract(
+              const Duration(days: 1),
+            ); // Set start date to previous day
+          }
+        }
       });
     }
   }
@@ -96,7 +133,15 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
         );
         return;
       }
+      if (_selectedStartDate == null) {
+        // Validate start date
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a start date.')),
+        );
+        return;
+      }
       if (_selectedDeadline == null) {
+        // Validate deadline
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please select a deadline.')),
         );
@@ -113,6 +158,9 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
             .text, // Assuming category is selected from dropdown
         clientId: _selectedClient!.id!,
         assignedToUserId: _assignedToUser!.id!,
+        startDate: DateFormat(
+          'MMM dd, yyyy',
+        ).format(_selectedStartDate!), // Pass start date
         deadline: DateFormat('MMM dd, yyyy').format(_selectedDeadline!),
         status:
             _statusController.text, // Assuming status is selected from dropdown
@@ -232,11 +280,36 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
                   ),
                   const SizedBox(height: 16.0),
 
-                  // Deadline Date Picker
+                  // NEW: Start Date Date Picker
                   GestureDetector(
-                    onTap: () => _selectDeadline(context),
+                    onTap: () => _selectDate(context, isStartDate: true),
                     child: AbsorbPointer(
                       // Prevents TextFormField from being editable directly
+                      child: TextFormField(
+                        controller: TextEditingController(
+                          text: _selectedStartDate == null
+                              ? ''
+                              : DateFormat(
+                                  'MMM dd, yyyy',
+                                ).format(_selectedStartDate!),
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Start Date',
+                          border: OutlineInputBorder(),
+                          suffixIcon: Icon(Icons.calendar_today),
+                        ),
+                        validator: (value) => value!.isEmpty
+                            ? 'Please select a start date'
+                            : null,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16.0),
+
+                  // Deadline Date Picker (uses _selectDate now)
+                  GestureDetector(
+                    onTap: () => _selectDate(context, isStartDate: false),
+                    child: AbsorbPointer(
                       child: TextFormField(
                         controller: TextEditingController(
                           text: _selectedDeadline == null
@@ -257,7 +330,6 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
                   ),
                   const SizedBox(height: 16.0),
 
-                  // Status Dropdown
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       labelText: 'Status',
@@ -283,7 +355,6 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
                   ),
                   const SizedBox(height: 16.0),
 
-                  // Description Text Field (Optional, for now)
                   TextFormField(
                     controller: _descriptionController,
                     decoration: const InputDecoration(
@@ -294,14 +365,13 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
                   ),
                   const SizedBox(height: 16.0),
 
-                  // Tracked Time (Optional, for now)
                   TextFormField(
                     controller: _trackedTimeController,
                     decoration: const InputDecoration(
                       labelText: 'Tracked Time (Optional)',
                       border: OutlineInputBorder(),
                     ),
-                    readOnly: true, // Typically set by system/other means
+                    readOnly: true,
                   ),
                   const SizedBox(height: 32.0),
 
