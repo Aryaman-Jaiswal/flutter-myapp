@@ -13,23 +13,36 @@ class ClientAddScreen extends StatefulWidget {
 class _ClientAddScreenState extends State<ClientAddScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _mobileNoController =
+      TextEditingController(); // NEW CONTROLLER
 
   String? _selectedCity;
-
   final List<String> _cities = [
-    'Vashi', 'Chembur', 'Andheri', 'Mumbai', 'Pune', 'Nagpur',
-    // Add more cities as needed
+    'Vashi',
+    'Chembur',
+    'Andheri',
+    'Mumbai',
+    'Pune',
+    'Nagpur',
   ];
   final String _fixedState = 'Maharashtra';
 
   @override
   void dispose() {
     _nameController.dispose();
+    _mobileNoController.dispose(); // Dispose the new controller
     super.dispose();
   }
 
   void _addClient() async {
     if (_formKey.currentState!.validate()) {
+      if (_selectedCity == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Please select a City')));
+        return;
+      }
+
       final clientProvider = Provider.of<ClientProvider>(
         context,
         listen: false,
@@ -38,6 +51,8 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
         name: _nameController.text,
         city: _selectedCity!,
         state: _fixedState,
+        mobileNo:
+            _mobileNoController.text, // Pass mobile number from controller
       );
 
       await clientProvider.addClient(newClient);
@@ -77,9 +92,7 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.0),
                         borderSide: BorderSide(
-                          color: colorScheme.outline.withAlpha(
-                            (0.5 * 255).toInt(),
-                          ),
+                          color: colorScheme.outline.withOpacity(0.5),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -90,9 +103,7 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
                         ),
                       ),
                       filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest.withAlpha(
-                        (0.3 * 255).toInt(),
-                      ),
+                      fillColor: colorScheme.surfaceVariant.withOpacity(0.3),
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 12.0,
                         horizontal: 16.0,
@@ -100,6 +111,41 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
                     ),
                     validator: (value) =>
                         value!.isEmpty ? 'Enter client name' : null,
+                  ),
+                  const SizedBox(height: 16.0),
+
+                  // NEW MOBILE NUMBER FIELD
+                  TextFormField(
+                    controller: _mobileNoController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Mobile Number',
+                      hintText: 'Enter client mobile number',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide(
+                          color: colorScheme.outline.withOpacity(0.5),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide(
+                          color: colorScheme.primary,
+                          width: 2.0,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: colorScheme.surfaceVariant.withOpacity(0.3),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12.0,
+                        horizontal: 16.0,
+                      ),
+                    ),
+                    validator: (value) =>
+                        value!.isEmpty ? 'Enter mobile number' : null,
                   ),
                   const SizedBox(height: 16.0),
 
@@ -114,9 +160,7 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.0),
                         borderSide: BorderSide(
-                          color: colorScheme.outline.withAlpha(
-                            (0.5 * 255).toInt(),
-                          ),
+                          color: colorScheme.outline.withOpacity(0.5),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -127,9 +171,7 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
                         ),
                       ),
                       filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest.withAlpha(
-                        (0.3 * 255).toInt(),
-                      ),
+                      fillColor: colorScheme.surfaceVariant.withOpacity(0.3),
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 12.0,
                         horizontal: 16.0,
@@ -152,6 +194,7 @@ class _ClientAddScreenState extends State<ClientAddScreen> {
                     isExpanded: true,
                     menuMaxHeight: 200,
                   ),
+
                   const SizedBox(height: 32.0),
                   ElevatedButton(
                     onPressed: _addClient,

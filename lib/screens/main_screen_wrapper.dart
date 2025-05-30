@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
 import 'user_management_screen.dart';
-import 'client_management_screen.dart';
+import 'clients/client_list_screen.dart';
 import 'users/user_edit_screen.dart';
 import 'auth/login_screen.dart';
 
@@ -48,7 +48,7 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
       // Index 0: User Administration
       UserManagementScreen(),
       // Index 1: Clients/Groups
-      ClientManagementScreen(),
+      ClientListScreen(),
     ];
 
     List<NavigationRailDestination> railDestinations = [
