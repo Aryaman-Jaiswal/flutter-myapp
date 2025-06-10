@@ -25,9 +25,6 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
 
   final TextEditingController _searchController = TextEditingController();
 
-  final ScrollController _timelineHeaderScrollController = ScrollController();
-  final ScrollController _timelineBodyScrollController = ScrollController();
-
   @override
   void initState() {
     super.initState();
@@ -500,79 +497,80 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: GanttChart<ProjectGanttData>(
-        // Use GanttChart with our ProjectGanttData
-        rows: projects.toGanttRows(
-          clients,
-          users,
-        ), // Convert projects to Gantt rows
+        rows: projects.toGanttRows(clients, users),
         showCurrentDate: true,
         style: GanttStyle(
-          columnWidth: 50, // Adjust column width for daily view
-          barHeight: 24, // Height of the task bars
+          columnWidth: 50,
+          barHeight: 24,
           timelineAxisType: TimelineAxisType.daily,
-          tooltipType: TooltipType.hover, // Show tooltip on hover/tap
-          // Use colors from your theme or specific for Gantt
-          // taskBarColor: Theme.of(context).colorScheme.primary.withOpacity(0.7),
-          taskBarColor: const Color.fromARGB(
-            255,
-            117,
-            13,
-            214,
-          ), // Lighter task bar color
-          activityLabelColor:
-              Colors.white, // Color for "To Do", "In Progress" labels
-          taskLabelColor: const Color.fromARGB(
-            255,
-            0,
-            0,
-            0,
-          ), // Color of text on task bars
+
+          tooltipType: TooltipType.hover,
+          taskBarColor: const Color.fromARGB(255, 117, 13, 214),
+          taskLabelColor: Colors.white,
+
           taskLabelBuilder: (ganttData) => Container(
-            // Customize task bar label
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Text(
-              ganttData.data.project.taskName,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-                color: Colors.white,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  ganttData.data.project.taskName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                    color: Colors.black,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  _getUserName(ganttData.data.project.assignedToUserId, users),
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
-          gridColor: Colors.grey.shade200, // Light grid lines
-          taskBarRadius: 8, // Rounded corners for task bars
-          activityLabelBuilder: (activity) => Container(
-            // Customize activity group label
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              activity.label!,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
-              ),
-            ),
-          ),
-          axisDividerColor: Colors.grey.shade400, // Color between days/weeks
-          tooltipColor: Colors.black.withOpacity(
-            0.8,
-          ), // Dark tooltip background
+          gridColor:
+              Colors.white, // Grid lines white to remove lighter sections
+          taskBarRadius: 8,
+          axisDividerColor:
+              Colors.white, // Axis dividers white to remove lighter sections
+          tooltipColor: Colors.black.withOpacity(0.8),
           tooltipPadding: const EdgeInsets.symmetric(
             horizontal: 10.0,
             vertical: 6.0,
           ),
-          weekendColor: Colors.grey.shade100, // Highlight weekends
-          dateLineColor: Colors.orangeAccent, // Color for today's date line
-          snapToDay: true, // Snap to day when dragging
+          weekendColor:
+              Colors.white, // Weekends white to remove lighter sections
+          dateLineColor: Colors.red,
+          snapToDay: true,
+
+          monthLabelBuilder: (Month month) => Text(
+            [
+              'Jan',
+              'Feb',
+              'Mar',
+              'Apr',
+              'May',
+              'Jun',
+              'Jul',
+              'Aug',
+              'Sep',
+              'Oct',
+              'Nov',
+              'Dec',
+            ][month.id - 1],
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
-        // You can add custom date lines for milestones or specific events
         dateLines: [
           GanttDateLine(date: DateTime.now(), width: 2, color: Colors.red),
         ],
+        // The taskLabel parameter is causing the error. We need to implement a custom
+        // `rowBuilder` or rely on `toString()` for the left column label based on GanttView's API.
+        // As discussed, overriding toString() in ProjectGanttData is the common approach.
+        // We removed the activityLabelBuilder also.
       ),
     );
   }

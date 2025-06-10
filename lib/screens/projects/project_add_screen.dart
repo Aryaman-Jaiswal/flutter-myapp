@@ -178,44 +178,82 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
     }
   }
 
+  // Create a reusable InputDecoration
+  InputDecoration _getInputDecoration(String hintText) {
+    return InputDecoration(
+      hintText: hintText,
+      filled: true,
+      fillColor: Colors.grey[50],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.grey, width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.grey, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.red, width: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final clientProvider = Provider.of<ClientProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New Project')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
+      // Add back the AppBar
+      appBar: AppBar(
+        title: const Text('Add New Project'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            const Text(
+              'Add New Project',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+
+            // Form
+            Form(
               key: _formKey,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Task Name
+                  const Text('Task Name'),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _taskNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Task Name',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _getInputDecoration('Enter task name'),
                     validator: (value) =>
                         value!.isEmpty ? 'Enter task name' : null,
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 24),
 
-                  // Category Dropdown
+                  // Category
+                  const Text('Category'),
+                  const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Category',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _getInputDecoration('Select Category'),
                     value: _categoryController.text.isNotEmpty
                         ? _categoryController.text
                         : null,
-                    hint: const Text('Select Category'),
                     items: _categories.map((String cat) {
                       return DropdownMenuItem<String>(
                         value: cat,
@@ -230,16 +268,14 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
                     validator: (value) =>
                         value == null ? 'Please select a category' : null,
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 24),
 
-                  // Client Selector Dropdown
+                  // Client
+                  const Text('Client'),
+                  const SizedBox(height: 8),
                   DropdownButtonFormField<Client>(
-                    decoration: const InputDecoration(
-                      labelText: 'Client',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _getInputDecoration('Select Client'),
                     value: _selectedClient,
-                    hint: const Text('Select Client'),
                     items: clientProvider.clients.map((Client client) {
                       return DropdownMenuItem<Client>(
                         value: client,
@@ -254,20 +290,18 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
                     validator: (value) =>
                         value == null ? 'Please select a client' : null,
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 24),
 
-                  // Assigned To User Selector Dropdown
+                  // Assigned To
+                  const Text('Assigned To'),
+                  const SizedBox(height: 8),
                   DropdownButtonFormField<User>(
-                    decoration: const InputDecoration(
-                      labelText: 'Assigned To',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _getInputDecoration('Select User'),
                     value: _assignedToUser,
-                    hint: const Text('Select User'),
                     items: userProvider.users.map((User user) {
                       return DropdownMenuItem<User>(
                         value: user,
-                        child: Text(user.firstName),
+                        child: Text('${user.firstName} ${user.lastName}'),
                       );
                     }).toList(),
                     onChanged: (User? newValue) {
@@ -278,111 +312,120 @@ class _ProjectAddScreenState extends State<ProjectAddScreen> {
                     validator: (value) =>
                         value == null ? 'Please select a user' : null,
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 24),
 
-                  // NEW: Start Date Date Picker
-                  GestureDetector(
-                    onTap: () => _selectDate(context, isStartDate: true),
-                    child: AbsorbPointer(
-                      // Prevents TextFormField from being editable directly
-                      child: TextFormField(
-                        controller: TextEditingController(
-                          text: _selectedStartDate == null
-                              ? ''
-                              : DateFormat(
-                                  'MMM dd, yyyy',
-                                ).format(_selectedStartDate!),
+                  // Dates Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Start Date'),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: () =>
+                                  _selectDate(context, isStartDate: true),
+                              child: AbsorbPointer(
+                                child: TextFormField(
+                                  controller: TextEditingController(
+                                    text: _selectedStartDate == null
+                                        ? ''
+                                        : DateFormat(
+                                            'MMM dd, yyyy',
+                                          ).format(_selectedStartDate!),
+                                  ),
+                                  decoration: _getInputDecoration('Select date')
+                                      .copyWith(
+                                        suffixIcon: const Icon(
+                                          Icons.calendar_today,
+                                          size: 20,
+                                        ),
+                                      ),
+                                  validator: (value) => value!.isEmpty
+                                      ? 'Select start date'
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        decoration: const InputDecoration(
-                          labelText: 'Start Date',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        validator: (value) => value!.isEmpty
-                            ? 'Please select a start date'
-                            : null,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16.0),
-
-                  // Deadline Date Picker (uses _selectDate now)
-                  GestureDetector(
-                    onTap: () => _selectDate(context, isStartDate: false),
-                    child: AbsorbPointer(
-                      child: TextFormField(
-                        controller: TextEditingController(
-                          text: _selectedDeadline == null
-                              ? ''
-                              : DateFormat(
-                                  'MMM dd, yyyy',
-                                ).format(_selectedDeadline!),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Deadline'),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: () =>
+                                  _selectDate(context, isStartDate: false),
+                              child: AbsorbPointer(
+                                child: TextFormField(
+                                  controller: TextEditingController(
+                                    text: _selectedDeadline == null
+                                        ? ''
+                                        : DateFormat(
+                                            'MMM dd, yyyy',
+                                          ).format(_selectedDeadline!),
+                                  ),
+                                  decoration: _getInputDecoration('Select date')
+                                      .copyWith(
+                                        suffixIcon: const Icon(
+                                          Icons.calendar_today,
+                                          size: 20,
+                                        ),
+                                      ),
+                                  validator: (value) =>
+                                      value!.isEmpty ? 'Select deadline' : null,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        decoration: const InputDecoration(
-                          labelText: 'Deadline',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        validator: (value) =>
-                            value!.isEmpty ? 'Please select a deadline' : null,
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 24),
 
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Status',
-                      border: OutlineInputBorder(),
-                    ),
-                    value: _statusController.text.isNotEmpty
-                        ? _statusController.text
-                        : null,
-                    hint: const Text('Select Status'),
-                    items: _statuses.map((String status) {
-                      return DropdownMenuItem<String>(
-                        value: status,
-                        child: Text(status),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _statusController.text = newValue!;
-                      });
-                    },
-                    validator: (value) =>
-                        value == null ? 'Please select a status' : null,
-                  ),
-                  const SizedBox(height: 16.0),
-
+                  // Description
+                  const Text('Description (Optional)'),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description (Optional)',
-                      border: OutlineInputBorder(),
-                    ),
                     maxLines: 3,
+                    decoration: _getInputDecoration('Enter description'),
                   ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 32),
 
-                  TextFormField(
-                    controller: _trackedTimeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Tracked Time (Optional)',
-                      border: OutlineInputBorder(),
+                  // Submit Button
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 32.0),
+                    child: ElevatedButton(
+                      onPressed: _addProject,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Add Project',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    readOnly: true,
-                  ),
-                  const SizedBox(height: 32.0),
-
-                  ElevatedButton(
-                    onPressed: _addProject,
-                    child: const Text('Add Project'),
                   ),
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
