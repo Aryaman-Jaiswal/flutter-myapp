@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/client_provider.dart';
-import '../clients/client_add_screen.dart'; // Import for "Add New Client" button
+// import '../clients/client_add_screen.dart'; // Import for "Add New Client" button
 import '../../models/client.dart'; // Import Client model
 
 class ClientListScreen extends StatefulWidget {
@@ -93,12 +93,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                     const SizedBox(width: 10),
                     ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ClientAddScreen(),
-                          ),
-                        );
+                        Navigator.of(context).pushNamed('/add');
                       },
                       icon: const Icon(Icons.add, color: Colors.white),
                       label: const Text(

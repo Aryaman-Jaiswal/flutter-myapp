@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-
 import 'user_management_screen.dart';
-import 'clients/client_list_screen.dart';
+
+import 'clients/client_tab_navigator.dart';
 import 'projects/project_list_screen.dart';
 import 'users/user_edit_screen.dart';
 import 'auth/login_screen.dart';
@@ -34,7 +34,7 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
-            _selectedIndex = 1; // Switch to Clients/Groups if not admin
+            _selectedIndex = 1;
           });
         }
       });
@@ -52,51 +52,49 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
     final currentUser = authProvider.currentUser;
 
     final List<Widget> pages = [
-      // Index 0: User Administration
       UserManagementScreen(),
-      // Index 1: Clients/Groups
-      ClientListScreen(),
-      // Index 2: Projects
+      const ClientTabNavigator(),
       ProjectListScreen(),
     ];
 
     List<NavigationRailDestination> railDestinations = [
       NavigationRailDestination(
-        icon: Icon(Icons.person),
-        label: Text('User Admin'),
+        icon: const Icon(Icons.person_outline),
+        selectedIcon: const Icon(Icons.person),
+        label: const Text('User Admin'),
       ),
       NavigationRailDestination(
-        icon: Icon(Icons.group),
-        label: Text('Clients'),
+        icon: const Icon(Icons.group_outlined),
+        selectedIcon: const Icon(Icons.group),
+        label: const Text('Clients'),
       ),
       NavigationRailDestination(
-        icon: Icon(Icons.folder),
-        label: Text('Projects'),
+        icon: const Icon(Icons.folder_outlined),
+        selectedIcon: const Icon(Icons.folder),
+        label: const Text('Projects'),
       ),
     ];
 
-    bool isExtended = MediaQuery.of(context).size.width >= 800;
+    bool isExtended = MediaQuery.of(context).size.width >= 700;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 1, // Subtle shadow
+        elevation: 1,
         title: Row(
           children: [
-            // Company Logo Placeholder
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
               child: Image.asset(
-                // Placeholder if you add logo later
-                'lib/assets/images/logo.png', // This path assumes you add an image at assets/images/logo.png
-                height: 96, // Adjust size as needed
+                'lib/assets/images/logo.png',
+                height: 96,
                 width: 144,
                 errorBuilder: (context, error, stackTrace) {
                   return Icon(
                     Icons.business,
                     color: Colors.grey[700],
                     size: 24,
-                  ); // Fallback icon
+                  );
                 },
               ),
             ),
@@ -105,9 +103,7 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
         actions: [
           if (currentUser != null)
             GestureDetector(
-              onTap: () {
-                // Open user profile dropdown or navigate
-              },
+              onTap: () {},
               child: Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: Row(
@@ -189,6 +185,10 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
               ),
             ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Divider(height: 1.0, color: Colors.grey[300]),
+        ),
       ),
       body: Row(
         children: [
@@ -210,11 +210,10 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
                   _selectedIndex = index;
                 });
               },
-              labelType: NavigationRailLabelType
-                  .none, // Always none for a very compact rail
-              extended: false, // Always compact for this design
-              // minWidth: 72, // Default, can be smaller if desired
-              // minExtendedWidth: 200, // Not applicable if always compact
+              labelType: NavigationRailLabelType.none,
+              extended: isExtended,
+              minWidth: 72,
+              minExtendedWidth: 200,
               destinations: railDestinations,
               backgroundColor: Colors.white,
               selectedIconTheme: IconThemeData(
@@ -222,6 +221,7 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
               ),
               selectedLabelTextStyle: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
               ),
               unselectedIconTheme: IconThemeData(color: Colors.grey[700]),
               unselectedLabelTextStyle: TextStyle(color: Colors.grey[700]),
@@ -230,6 +230,7 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
               ).colorScheme.primary.withOpacity(0.1),
             ),
           ),
+          VerticalDivider(thickness: 1, width: 1, color: Colors.grey[300]),
           Expanded(
             child: Container(
               color: Colors.grey[50],
