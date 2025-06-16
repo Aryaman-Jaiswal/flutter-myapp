@@ -5,6 +5,7 @@ import '../main_screen_wrapper.dart';
 import 'signup_screen.dart';
 import '../../utils/login_clipper.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -25,18 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      if (auth.isAuthenticated) {
-        final int initialTab = auth.isAdmin ? 0 : 1;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) =>
-                MainScreenWrapper(initialSelectedIndex: initialTab),
-          ),
-        );
-      }
-    });
   }
 
   @override
@@ -47,6 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login() async {
+    // Ensure the widget is still mounted before proceeding, especially after async gaps.
+    if (!mounted) return;
+
     if (_formKey.currentState!.validate()) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       bool success = await auth.login(
@@ -54,17 +46,17 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
 
+      // Check mounted again after the await call.
+      if (!mounted) return;
+
       if (success) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Login Successful!')));
-        final int initialTab = auth.isAdmin ? 0 : 1;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) =>
-                MainScreenWrapper(initialSelectedIndex: initialTab),
-          ),
-        );
+        // --- MODIFIED NAVIGATION CALL ---
+        // Use go_router to navigate to the default main screen.
+        // The router's redirect logic will handle everything else.
+        context.go('/clients');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Invalid Email or Password')),
@@ -292,12 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     duration: Duration(milliseconds: 2100),
                     child: TextButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SignupScreen(),
-                          ),
-                        );
+                        context.go('/signup');
                       },
                       child: const Text('Don\'t have an account? Sign Up'),
                     ),

@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../models/user.dart';
 import '../models/client.dart';
@@ -27,9 +28,16 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDb() async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, 'my_app_database.db');
-
+    String path;
+    if (kIsWeb) {
+      // For web, just provide a database name.
+      // The sqflite_common_ffi_web package will handle the rest.
+      path = 'my_app_database.db';
+    } else {
+      // For mobile/desktop, use path_provider to find a suitable directory.
+      Directory documentsDirectory = await getApplicationDocumentsDirectory();
+      path = join(documentsDirectory.path, 'my_app_database.db');
+    }
     return await openDatabase(
       path,
       version: 1,

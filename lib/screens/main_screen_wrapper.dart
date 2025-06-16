@@ -1,49 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart'; // Import go_router for navigation
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import 'user_management_screen.dart';
-
-import 'clients/client_tab_navigator.dart';
-import 'projects/project_list_screen.dart';
-import 'users/user_edit_screen.dart';
-import 'auth/login_screen.dart';
 import '../utils/constants.dart';
 
-class MainScreenWrapper extends StatefulWidget {
-  final int initialSelectedIndex;
-  const MainScreenWrapper({super.key, this.initialSelectedIndex = 0});
+import 'users/user_edit_screen.dart';
+import 'auth/login_screen.dart';
 
-  @override
-  State<MainScreenWrapper> createState() => _MainScreenWrapperState();
-}
+class MainScreenWrapper extends StatelessWidget {
+  // Changed to StatelessWidget
+  // NEW: Accept a child widget from ShellRoute
+  final Widget child;
+  const MainScreenWrapper({super.key, required this.child});
 
-class _MainScreenWrapperState extends State<MainScreenWrapper> {
-  late int _selectedIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedIndex = widget.initialSelectedIndex;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final authProvider = Provider.of<AuthProvider>(context);
-    if (!authProvider.isAdmin && _selectedIndex == 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _selectedIndex = 1;
-          });
-        }
-      });
+  // Helper to determine selectedIndex from the current URL
+  int _calculateSelectedIndex(BuildContext context) {
+    final String location = GoRouterState.of(context).matchedLocation;
+    if (location.startsWith('/users')) {
+      return 0;
     }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
+    if (location.startsWith('/clients')) {
+      return 1;
+    }
+    if (location.startsWith('/projects')) {
+      return 2;
+    }
+    return 1; // Default to Clients
   }
 
   @override
@@ -51,13 +33,9 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
     final authProvider = Provider.of<AuthProvider>(context);
     final currentUser = authProvider.currentUser;
 
-    final List<Widget> pages = [
-      UserManagementScreen(),
-      const ClientTabNavigator(),
-      ProjectListScreen(),
-    ];
+    // --- REMOVED _pages and _selectedIndex state ---
 
-    List<NavigationRailDestination> railDestinations = [
+    List<NavigationRailDestination> _railDestinations = [
       NavigationRailDestination(
         icon: const Icon(Icons.person_outline),
         selectedIcon: const Icon(Icons.person),
@@ -75,25 +53,26 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
       ),
     ];
 
-    bool isExtended = MediaQuery.of(context).size.width >= 700;
+    bool isExtended = true;
 
     return Scaffold(
       appBar: AppBar(
+        // ... AppBar code remains the same ...
         backgroundColor: Colors.white,
-        elevation: 1,
+        elevation: 0,
         title: Row(
           children: [
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
               child: Image.asset(
-                'lib/assets/images/logo.png',
-                height: 96,
-                width: 144,
+                'assets/images/logo.png',
+                height: 32,
+                width: 32,
                 errorBuilder: (context, error, stackTrace) {
                   return Icon(
                     Icons.business,
                     color: Colors.grey[700],
-                    size: 24,
+                    size: 32,
                   );
                 },
               ),
@@ -146,14 +125,11 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
                       onSelected: (value) {
                         if (value == 'logout') {
                           authProvider.logout();
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (context) => LoginScreen(),
-                            ),
-                            (Route<dynamic> route) => false,
-                          );
+                          context.go('/login'); // Use go_router for navigation
                         } else if (value == 'edit_profile') {
                           if (currentUser != null) {
+                            // For nested navigation, using MaterialPageRoute here is fine for now,
+                            // or you could define this as a sub-route in go_router too.
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -194,48 +170,45 @@ class _MainScreenWrapperState extends State<MainScreenWrapper> {
         children: [
           SafeArea(
             child: NavigationRail(
-              selectedIndex: _selectedIndex,
+              selectedIndex: _calculateSelectedIndex(
+                context,
+              ), // Determine index from URL
               onDestinationSelected: (int index) {
-                if (index == 0 && !authProvider.isAdmin) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'You do not have permission to access User Administration.',
-                      ),
-                    ),
-                  );
-                  return;
+                // Use context.go() to navigate, which updates the URL
+                switch (index) {
+                  case 0:
+                    context.go('/users');
+                    break;
+                  case 1:
+                    context.go('/clients');
+                    break;
+                  case 2:
+                    context.go('/projects');
+                    break;
                 }
-                setState(() {
-                  _selectedIndex = index;
-                });
               },
-              labelType: NavigationRailLabelType.none,
               extended: isExtended,
-              minWidth: 72,
-              minExtendedWidth: 200,
-              destinations: railDestinations,
+              labelType: NavigationRailLabelType.none,
               backgroundColor: Colors.white,
               selectedIconTheme: IconThemeData(
                 color: Theme.of(context).colorScheme.primary,
               ),
+              unselectedIconTheme: IconThemeData(color: Colors.grey[700]),
               selectedLabelTextStyle: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
-              unselectedIconTheme: IconThemeData(color: Colors.grey[700]),
               unselectedLabelTextStyle: TextStyle(color: Colors.grey[700]),
+              minExtendedWidth: 200,
               indicatorColor: Theme.of(
                 context,
               ).colorScheme.primary.withOpacity(0.1),
+              destinations: _railDestinations,
             ),
           ),
           VerticalDivider(thickness: 1, width: 1, color: Colors.grey[300]),
           Expanded(
-            child: Container(
-              color: Colors.grey[50],
-              child: IndexedStack(index: _selectedIndex, children: pages),
-            ),
+            child: child, // Display the active child route here
           ),
         ],
       ),

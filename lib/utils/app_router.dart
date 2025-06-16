@@ -1,0 +1,81 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/auth/signup_screen.dart';
+import '../screens/main_screen_wrapper.dart';
+import '../screens/clients/client_list_screen.dart';
+import '../screens/clients/client_add_screen.dart';
+import '../screens/projects/project_list_screen.dart';
+import '../screens/user_management_screen.dart';
+
+class AppRouter {
+  final AuthProvider authProvider;
+  AppRouter(this.authProvider);
+
+  late final GoRouter router = GoRouter(
+    initialLocation: '/clients', // A sensible default after login
+    refreshListenable: authProvider,
+    routes: [
+      // --- Routes outside the shell (Login/Signup) ---
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/signup',
+        builder: (context, state) => const SignupScreen(),
+      ),
+
+      // --- Main application routes wrapped in a ShellRoute ---
+      ShellRoute(
+        // The builder for the shell itself. This is our main layout.
+        // The `child` parameter is the widget for the currently active route.
+        builder: (context, state, child) {
+          return MainScreenWrapper(
+            child: child,
+          ); // Pass the active screen as a child
+        },
+        routes: [
+          // The routes that will be displayed within the ShellRoute's `child`
+          GoRoute(
+            path: '/',
+            redirect: (_, __) => '/clients', // Redirect root to /clients
+          ),
+          GoRoute(
+            path: '/users',
+            builder: (context, state) => const UserManagementScreen(),
+          ),
+          GoRoute(
+            path: '/projects',
+            builder: (context, state) => const ProjectListScreen(),
+          ),
+          GoRoute(
+            path: '/clients',
+            builder: (context, state) => const ClientListScreen(),
+            // Nested route for adding a client
+            routes: [
+              GoRoute(
+                path: 'add', // This will result in the URL: /clients/add
+                builder: (context, state) => const ClientAddScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+    // Redirect logic to handle authentication
+    redirect: (context, state) {
+      final loggedIn = authProvider.isAuthenticated;
+      final loggingIn =
+          state.matchedLocation == '/login' ||
+          state.matchedLocation == '/signup';
+
+      if (!loggedIn && !loggingIn) {
+        return '/login'; // If not logged in and not on auth pages, go to login
+      }
+      if (loggedIn && loggingIn) {
+        return '/clients'; // If logged in and on auth pages, go to a default home page
+      }
+      return null; // No redirect needed
+    },
+  );
+}

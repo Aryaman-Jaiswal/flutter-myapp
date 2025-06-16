@@ -47,13 +47,15 @@ class _SignupScreenState extends State<SignupScreen> {
       }
 
       final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.fetchUsers(); // Make sure the user list is up-to-date
+      final bool isFirstUser = userProvider.users.isEmpty;
       final newUser = User(
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
         email: _emailController.text,
         password: _passwordController.text,
         mobileNo: _mobileNoController.text,
-        role: UserRole.user,
+        role: isFirstUser ? UserRole.superAdmin : UserRole.user,
       );
 
       await userProvider.addUser(newUser);

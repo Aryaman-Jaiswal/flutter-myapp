@@ -5,6 +5,7 @@ import '../../providers/user_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
 import '../main_screen_wrapper.dart';
+import 'package:go_router/go_router.dart';
 
 class UserEditScreen extends StatefulWidget {
   final int userId;
@@ -70,6 +71,9 @@ class _UserEditScreenState extends State<UserEditScreen> {
   }
 
   void _saveUser() async {
+    // Ensure the widget is still mounted before proceeding, especially after async gaps.
+    if (!mounted) return;
+
     if (_formKey.currentState!.validate() && _user != null) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -98,21 +102,26 @@ class _UserEditScreenState extends State<UserEditScreen> {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.updateUser(updatedUser);
 
+      // IMPORTANT: Update AuthProvider's current user AFTER the database update
       authProvider.updateCurrentUser(updatedUser);
+
+      // Check mounted again after the await call before showing UI or navigating.
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User updated successfully!')),
       );
+
+      // --- UPDATED NAVIGATION LOGIC ---
+      // Check if the currently logged-in user just changed their own role and is no longer an admin.
       if (authProvider.currentUser?.id == updatedUser.id &&
           !authProvider.isAdmin) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => MainScreenWrapper(initialSelectedIndex: 1),
-          ),
-          (Route<dynamic> route) => route.isFirst,
-        );
+        // If the user demoted themselves, navigate them to a safe default page,
+        // as they may no longer have access to the previous screen (e.g., User List).
+        context.go('/clients');
       } else {
-        Navigator.pop(context);
+        // Otherwise, simply pop back to the previous screen in the navigation stack.
+        context.pop();
       }
     }
   }
