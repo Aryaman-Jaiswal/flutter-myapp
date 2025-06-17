@@ -7,11 +7,14 @@ import '../screens/auth/signup_screen.dart';
 import '../screens/main_screen_wrapper.dart';
 import '../screens/clients/client_list_screen.dart';
 import '../screens/clients/client_add_screen.dart';
-import '../screens/projects/project_list_screen.dart';
+import '../screens/projects/task_list_screen.dart';
 import '../screens/user_management_screen.dart';
 import '../screens/users/user_list_screen.dart'; // Import user list screen
 import '../screens/users/user_detail_screen.dart'; // Import user detail screen
 import '../screens/users/user_edit_screen.dart'; // Import user edit screen
+import '../screens/projects/project_list_screen.dart';
+// ... (imports)
+import '../screens/projects/project_add_screen.dart';
 
 class AppRouter {
   final AuthProvider authProvider;
@@ -94,6 +97,24 @@ class AppRouter {
           GoRoute(
             path: '/projects',
             builder: (context, state) => const ProjectListScreen(),
+            routes: [
+              GoRoute(
+                path: 'add', // Matches /projects/add
+                builder: (context, state) => const ProjectAddScreen(),
+              ),
+              // NEW: Dynamic route for tasks within a project
+              GoRoute(
+                path: ':projectId', // e.g., /projects/1
+                builder: (context, state) {
+                  final projectId = int.parse(
+                    state.pathParameters['projectId']!,
+                  );
+                  return TaskListScreen(
+                    projectId: projectId,
+                  ); // Shows the task list
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: '/clients',

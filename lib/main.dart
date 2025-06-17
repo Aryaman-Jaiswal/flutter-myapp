@@ -9,8 +9,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'providers/auth_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/client_provider.dart';
-import 'providers/project_provider.dart';
+import 'providers/task_provider.dart';
 import 'services/database_helper.dart';
+import 'providers/project_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +43,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<ClientProvider>(create: (_) => ClientProvider()),
         ChangeNotifierProvider<ProjectProvider>(
           create: (_) => ProjectProvider(),
-        ),
+        ), // For high-level projects
+        ChangeNotifierProvider<TaskProvider>(create: (_) => TaskProvider()),
       ],
       child: Builder(
         builder: (context) {

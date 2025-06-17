@@ -1,3 +1,5 @@
+// lib/providers/project_provider.dart
+
 import 'package:flutter/material.dart';
 import '../models/project.dart';
 import '../services/database_helper.dart';
@@ -17,6 +19,10 @@ class ProjectProvider with ChangeNotifier {
     await _dbHelper.insertProject(project);
     await fetchProjects();
   }
+
+  
+
+  // ... (updateProject, getProjectById, deleteProject methods)
 
   Future<void> updateProject(Project project) async {
     await _dbHelper.updateProject(project);

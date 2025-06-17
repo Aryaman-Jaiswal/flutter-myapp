@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/user.dart';
 import '../models/client.dart';
 import '../utils/constants.dart';
+import '../models/task.dart';
 import '../models/project.dart';
 
 class DatabaseHelper {
@@ -71,21 +72,6 @@ class DatabaseHelper {
       )
     ''');
 
-    await db.execute('''
-      CREATE TABLE projects (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        taskName TEXT NOT NULL,
-        category TEXT NOT NULL,
-        clientId INTEGER NOT NULL,
-        assignedToUserId INTEGER NOT NULL,
-        startDate TEXT NOT NULL,
-        deadline TEXT NOT NULL,
-        status TEXT NOT NULL,
-        FOREIGN KEY (clientId) REFERENCES clients(id) ON DELETE CASCADE,
-        FOREIGN KEY (assignedToUserId) REFERENCES users(id) ON DELETE CASCADE
-      )
-    ''');
-
     await db.insert('users', {
       'firstName': 'Super',
       'lastName': 'Admin',
@@ -95,6 +81,34 @@ class DatabaseHelper {
       'role': UserRole.superAdmin.toShortString(),
     });
     print("Super Admin created: superadmin@example.com / password");
+
+    await db.execute('''
+      CREATE TABLE projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        clientId INTEGER NOT NULL,
+        FOREIGN KEY (clientId) REFERENCES clients(id) ON DELETE CASCADE
+      )
+    ''');
+
+    // --- RENAMED: from 'projects' to 'tasks' ---
+    await db.execute('''
+      CREATE TABLE tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        taskName TEXT NOT NULL,
+        projectId INTEGER NOT NULL, -- Added projectId foreign key
+      
+        clientId INTEGER NOT NULL,
+        assignedToUserId INTEGER NOT NULL,
+        startDate TEXT NOT NULL,
+        deadline TEXT NOT NULL,
+        status TEXT NOT NULL,
+        FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (clientId) REFERENCES clients(id) ON DELETE CASCADE,
+        FOREIGN KEY (assignedToUserId) REFERENCES users(id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -182,12 +196,15 @@ class DatabaseHelper {
     );
   }
 
-  //--- PROJECT CRUD OPERATIONS ---
   Future<int> deleteClient(int id) async {
     Database db = await database;
     return await db.delete('clients', where: 'id = ?', whereArgs: [id]);
   }
 
+  //--- PROJECT CRUD OPERATIONS ---
+  // --- USER CRUD OPERATIONS (unchanged) ---
+
+  // --- NEW: PROJECT CRUD OPERATIONS (for high-level projects) ---
   Future<int> insertProject(Project project) async {
     Database db = await database;
     return await db.insert('projects', project.toMap());
@@ -227,5 +244,47 @@ class DatabaseHelper {
   Future<int> deleteProject(int id) async {
     Database db = await database;
     return await db.delete('projects', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- RENAMED: TASK CRUD OPERATIONS ---
+  Future<int> insertTask(Task task) async {
+    Database db = await database;
+    return await db.insert('tasks', task.toMap());
+  }
+
+  Future<List<Task>> getTasks() async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('tasks');
+    return List.generate(maps.length, (i) {
+      return Task.fromMap(maps[i]);
+    });
+  }
+
+  Future<Task?> getTaskById(int id) async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'tasks',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return Task.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<int> updateTask(Task task) async {
+    Database db = await database;
+    return await db.update(
+      'tasks',
+      task.toMap(),
+      where: 'id = ?',
+      whereArgs: [task.id],
+    );
+  }
+
+  Future<int> deleteTask(int id) async {
+    Database db = await database;
+    return await db.delete('tasks', where: 'id = ?', whereArgs: [id]);
   }
 }
