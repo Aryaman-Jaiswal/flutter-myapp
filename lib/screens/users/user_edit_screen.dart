@@ -140,7 +140,14 @@ class _UserEditScreenState extends State<UserEditScreen> {
     bool canAssignRoles = authProvider.isAdmin;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit User')),
+      appBar: AppBar(
+        title: const Text('Edit User'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () =>
+              context.pop(), // Pop works well for going back one level
+        ),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),

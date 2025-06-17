@@ -6,6 +6,7 @@ import '../../utils/constants.dart';
 import '../auth/signup_screen.dart';
 import 'user_edit_screen.dart';
 import 'user_detail_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -36,14 +37,15 @@ class _UserListScreenState extends State<UserListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('User List'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/users'),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SignupScreen()),
-              );
+              context.go('/users/add');
             },
           ),
         ],
@@ -70,61 +72,13 @@ class _UserListScreenState extends State<UserListScreen> {
                       IconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  UserEditScreen(userId: user.id!),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          bool? confirmDelete = await showDialog<bool>(
-                            context: context,
-                            builder: (BuildContext dialogContext) {
-                              return AlertDialog(
-                                title: const Text('Confirm Delete'),
-                                content: Text(
-                                  'Are you sure you want to delete ${user.firstName}?',
-                                ),
-                                actions: <Widget>[
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(dialogContext).pop(false),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(dialogContext).pop(true),
-                                    child: const Text('Delete'),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                          if (confirmDelete == true) {
-                            await userProvider.deleteUser(user.id!);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('User deleted successfully!'),
-                              ),
-                            );
-                          }
+                          context.go('/users/${user.id}/edit');
                         },
                       ),
                     ],
                   ),
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            UserDetailScreen(userId: user.id!),
-                      ),
-                    );
+                    context.go('/users/${user.id}');
                   },
                 ),
               );

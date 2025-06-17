@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import 'users/user_list_screen.dart';
 import 'auth/signup_screen.dart';
@@ -47,22 +48,14 @@ class UserManagementScreen extends StatelessWidget {
                     leading: Icon(Icons.people),
                     title: Text('View User List'),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserListScreen(),
-                        ),
-                      );
+                      context.go('/users/list');
                     },
                   ),
                   ListTile(
                     leading: Icon(Icons.person_add),
                     title: Text('Add New User'),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SignupScreen()),
-                      );
+                      context.go('/users/add');
                     },
                   ),
                 ],

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/constants.dart';
+import 'package:go_router/go_router.dart';
 import 'package:animate_do/animate_do.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -241,7 +242,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         duration: const Duration(milliseconds: 750),
                         child: TextButton(
                           onPressed: () {
-                            Navigator.pop(context);
+                            context.go('/login');
                           },
                           child: RichText(
                             text: TextSpan(

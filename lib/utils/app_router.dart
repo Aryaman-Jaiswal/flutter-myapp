@@ -9,6 +9,9 @@ import '../screens/clients/client_list_screen.dart';
 import '../screens/clients/client_add_screen.dart';
 import '../screens/projects/project_list_screen.dart';
 import '../screens/user_management_screen.dart';
+import '../screens/users/user_list_screen.dart'; // Import user list screen
+import '../screens/users/user_detail_screen.dart'; // Import user detail screen
+import '../screens/users/user_edit_screen.dart'; // Import user edit screen
 
 class AppRouter {
   final AuthProvider authProvider;
@@ -43,6 +46,50 @@ class AppRouter {
           GoRoute(
             path: '/users',
             builder: (context, state) => const UserManagementScreen(),
+            routes: [
+              GoRoute(
+                path: 'list', // Matches /users/list
+                builder: (context, state) => const UserListScreen(),
+              ),
+              GoRoute(
+                path: 'add', // Matches /users/add
+                // We re-use the SignupScreen for adding users
+                builder: (context, state) => const SignupScreen(),
+              ),
+              GoRoute(
+                // Dynamic route for user details and editing
+                // NOTE: Using user ID is more robust than username
+                path: ':userId', // Matches /users/1, /users/2, etc.
+                builder: (context, state) {
+                  final userId = int.tryParse(
+                    state.pathParameters['userId'] ?? '',
+                  );
+                  if (userId == null) {
+                    // Handle error case, e.g., show an error page or redirect
+                    return const Scaffold(
+                      body: Center(child: Text('Invalid User ID')),
+                    );
+                  }
+                  return UserDetailScreen(userId: userId);
+                },
+                routes: [
+                  GoRoute(
+                    path: 'edit', // Matches /users/:userId/edit
+                    builder: (context, state) {
+                      final userId = int.tryParse(
+                        state.pathParameters['userId'] ?? '',
+                      );
+                      if (userId == null) {
+                        return const Scaffold(
+                          body: Center(child: Text('Invalid User ID')),
+                        );
+                      }
+                      return UserEditScreen(userId: userId);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
           GoRoute(
             path: '/projects',

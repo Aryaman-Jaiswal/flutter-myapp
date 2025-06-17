@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/auth_provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../utils/constants.dart';
 import 'user_edit_screen.dart';
 
@@ -17,22 +18,22 @@ class UserDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('User Details'), 
+        title: const Text('User Details'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () =>
+              context.go('/users/list'), // Navigate back to the list
+        ),
         actions: [
-          if (authProvider.isAdmin || authProvider.currentUser?.id == userId)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UserEditScreen(userId: userId),
-                  ),
-                );
-              },
-            ),
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {
+              context.go('/users/$userId/edit'); // This is correct
+            },
+          ),
         ],
       ),
+
       body: FutureBuilder<User?>(
         future: userProvider.getUserById(userId),
         builder: (context, snapshot) {
