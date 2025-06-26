@@ -14,6 +14,8 @@ import 'package:gantt_view/gantt_view.dart';
 import '../../utils/gantt_helpers.dart';
 import '../../models/project.dart'
     as model_project; // Use alias to avoid conflict
+import 'dart:async'; // Import for Timer
+import 'package:time_tracker/time_tracker.dart';
 
 class TaskListScreen extends StatefulWidget {
   final int projectId;
@@ -30,6 +32,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
   final TextEditingController _searchController = TextEditingController();
   late Future<model_project.Project?>
   _projectFuture; // Use alias for Project model
+  Map<int, Timer> _runningTimers = {};
 
   @override
   void initState() {
@@ -50,7 +53,17 @@ class _TaskListScreenState extends State<TaskListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _runningTimers.forEach((key, timer) => timer.cancel());
     super.dispose();
+  }
+
+  String _formatDuration(int totalSeconds) {
+    final duration = Duration(seconds: totalSeconds);
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$hours:$minutes:$seconds";
   }
 
   String _getClientName(int clientId, List<Client> clients) {
@@ -420,12 +433,16 @@ class _TaskListScreenState extends State<TaskListScreen> {
                       _projectTableHeaderCell('Task name', flex: 3),
                       _projectTableHeaderCell('Description', flex: 4),
                       _projectTableHeaderCell('Deadline', flex: 2),
-                      _projectTableHeaderCell('Tracked time', flex: 2),
+
                       _projectTableHeaderCell('Assigned to', flex: 2),
                       _projectTableHeaderCell('Client', flex: 2),
                       // REMOVED: _projectTableHeaderCell('Category', flex: 2),
                       // REMOVED: _projectTableHeaderCell('Priority', flex: 1),
-                      _projectTableHeaderCell('', flex: 0.5), // For ... icon
+                      _projectTableHeaderCell('Tracked time', flex: 2),
+                      _projectTableHeaderCell(
+                        'Action',
+                        flex: 1,
+                      ), // For ... icon
                     ],
                   ),
                 ),
@@ -582,9 +599,21 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   // Helper widget to build a single project row (for Board view)
+  // In lib/screens/projects/task_list_screen.dart
+
   Widget _buildProjectRow(Task task, Client client, User assignedUser) {
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+    final isTracking = _runningTimers.containsKey(task.id);
+
+    // Calculate current display time
+    int displaySeconds = task.totalTrackedSeconds;
+    if (task.trackingStartTime != null) {
+      displaySeconds += DateTime.now()
+          .difference(task.trackingStartTime!)
+          .inSeconds;
+    }
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
         children: [
           SizedBox(
@@ -595,8 +624,59 @@ class _TaskListScreenState extends State<TaskListScreen> {
           _projectTableCell(task.taskName, flex: 3),
           _projectTableCell(task.description, flex: 4),
           _projectTableCell(task.deadline, flex: 2),
-          _projectTableCell(task.trackedTime, flex: 2),
+
+          // --- MODIFIED SECTION: Replace the old trackedTime cell with the new interactive one ---
+          // Expanded(
+          //   flex: 2, // Use the same flex factor as the header
+          //   child: Row(
+          //     children: [
+          //       // Start/Stop Button
+          //       IconButton(
+          //         icon: Icon(
+          //           isTracking
+          //               ? Icons.stop_circle_outlined
+          //               : Icons.play_circle_outline,
+          //           color: isTracking ? Colors.red : Colors.green,
+          //           size: 20, // Make icon slightly smaller to fit better
+          //         ),
+          //         padding: EdgeInsets.zero, // Remove extra padding
+          //         onPressed: () {
+          //           setState(() {
+          //             if (isTracking) {
+          //               // --- STOPPING ---
+          //               task.totalTrackedSeconds =
+          //                   displaySeconds; // Finalize time
+          //               task.trackingStartTime = null;
+          //               _runningTimers[task.id!]?.cancel(); // Cancel the timer
+          //               _runningTimers.remove(task.id!); // Remove from map
+          //               taskProvider.updateTaskTime(task); // Persist to DB
+          //             } else {
+          //               // --- STARTING ---
+          //               task.trackingStartTime = DateTime.now();
+          //               _runningTimers[task
+          //                   .id!] = Timer.periodic(const Duration(seconds: 1), (
+          //                 timer,
+          //               ) {
+          //                 // This timer just forces a rebuild every second to update the UI
+          //                 if (mounted) {
+          //                   setState(() {});
+          //                 } else {
+          //                   timer.cancel(); // Clean up if widget is disposed
+          //                 }
+          //               });
+          //             }
+          //           });
+          //         },
+          //       ),
+          //       // Timer Display Text
+          //       Text(_formatDuration(displaySeconds)),
+          //     ],
+          //   ),
+          // ),
+
+          // --- END MODIFIED SECTION ---
           Expanded(
+            // "Assigned To" column
             flex: 2,
             child: Row(
               children: [
@@ -606,7 +686,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                     context,
                   ).colorScheme.primary.withOpacity(0.1),
                   child: Text(
-                    assignedUser.firstName[0].toUpperCase(),
+                    assignedUser.firstName.isNotEmpty
+                        ? assignedUser.firstName[0].toUpperCase()
+                        : '?',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontSize: 12,
@@ -621,16 +703,55 @@ class _TaskListScreenState extends State<TaskListScreen> {
               ],
             ),
           ),
-          _projectTableCell(client.name, flex: 2), // ADDED BACK
+          _projectTableCell(client.name, flex: 2),
+          _projectTableCell(_formatDuration(displaySeconds), flex: 2),
           Expanded(
-            flex: 0.5.toInt(),
-            child: IconButton(
-              icon: const Icon(Icons.more_horiz, size: 18, color: Colors.grey),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('More options for ${task.taskName}')),
-                );
-              },
+            flex: 1,
+            child: Center(
+              // Center the button in its column
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    if (isTracking) {
+                      // STOPPING
+                      task.totalTrackedSeconds = displaySeconds;
+                      task.trackingStartTime = null;
+                      _runningTimers[task.id!]?.cancel();
+                      _runningTimers.remove(task.id!);
+                      taskProvider.updateTaskTime(task);
+                    } else {
+                      // STARTING
+                      task.trackingStartTime = DateTime.now();
+                      _runningTimers[task.id!] = Timer.periodic(
+                        const Duration(seconds: 1),
+                        (timer) {
+                          if (mounted) {
+                            setState(() {});
+                          } else {
+                            timer.cancel();
+                          }
+                        },
+                      );
+                    }
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isTracking ? Colors.redAccent : Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20), // Pill shape
+                  ),
+                ),
+                child: Text(isTracking ? 'Stop' : 'Start'),
+              ),
             ),
           ),
         ],

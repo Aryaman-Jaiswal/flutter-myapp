@@ -53,7 +53,18 @@ class MainScreenWrapper extends StatelessWidget {
       ),
     ];
 
-    bool isExtended = true;
+    // Use a fixed width (e.g., 800px) for the main content area on large screens
+    bool isExtended = MediaQuery.of(context).size.width > 1000;
+
+    // Optionally, constrain the main content width to 800px and center it
+    Widget getConstrainedChild(Widget child) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: child,
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(

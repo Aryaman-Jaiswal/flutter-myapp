@@ -13,7 +13,9 @@ class Task {
 
   // Mock attributes for display in list view
   final String description;
-  final String trackedTime;
+
+  int totalTrackedSeconds; // Total accumulated seconds
+  DateTime? trackingStartTime;
 
   Task({
     this.id,
@@ -26,7 +28,8 @@ class Task {
     required this.deadline,
     required this.status,
     this.description = '',
-    this.trackedTime = '0h 0m',
+    this.totalTrackedSeconds = 0, // Default to 0
+    this.trackingStartTime,
   });
 
   // Convert Project object to Map for SQLite
@@ -41,6 +44,7 @@ class Task {
       'startDate': startDate,
       'deadline': deadline,
       'status': status,
+      'totalTrackedSeconds': totalTrackedSeconds,
       // description and trackedTime are not stored in DB for now
     };
   }
@@ -57,6 +61,7 @@ class Task {
       startDate: map['startDate'],
       deadline: map['deadline'],
       status: map['status'],
+      totalTrackedSeconds: map['totalTrackedSeconds'] ?? 0,
       // description and trackedTime will default on load if not in map
     );
   }

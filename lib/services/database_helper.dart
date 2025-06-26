@@ -104,6 +104,7 @@ class DatabaseHelper {
         startDate TEXT NOT NULL,
         deadline TEXT NOT NULL,
         status TEXT NOT NULL,
+        totalTrackedSeconds INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
         FOREIGN KEY (clientId) REFERENCES clients(id) ON DELETE CASCADE,
         FOREIGN KEY (assignedToUserId) REFERENCES users(id) ON DELETE CASCADE

@@ -21,8 +21,7 @@ class UserDetailScreen extends StatelessWidget {
         title: const Text('User Details'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () =>
-              context.go('/users/list'), // Navigate back to the list
+          onPressed: () => context.go('/users'), // Navigate back to the list
         ),
         actions: [
           IconButton(

@@ -8,7 +8,7 @@ import '../screens/main_screen_wrapper.dart';
 import '../screens/clients/client_list_screen.dart';
 import '../screens/clients/client_add_screen.dart';
 import '../screens/projects/task_list_screen.dart';
-import '../screens/user_management_screen.dart';
+
 import '../screens/users/user_list_screen.dart'; // Import user list screen
 import '../screens/users/user_detail_screen.dart'; // Import user detail screen
 import '../screens/users/user_edit_screen.dart'; // Import user edit screen
@@ -48,12 +48,8 @@ class AppRouter {
           ),
           GoRoute(
             path: '/users',
-            builder: (context, state) => const UserManagementScreen(),
+            builder: (context, state) => const UserListScreen(),
             routes: [
-              GoRoute(
-                path: 'list', // Matches /users/list
-                builder: (context, state) => const UserListScreen(),
-              ),
               GoRoute(
                 path: 'add', // Matches /users/add
                 // We re-use the SignupScreen for adding users

@@ -1,49 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
 
-import '../../models/task.dart'; // Renamed from project.dart
-import '../../models/client.dart';
+import '../../models/task.dart';
+// REMOVED: import '../../models/client.dart'; // No longer needed for dropdown
 import '../../models/user.dart';
-import '../../providers/task_provider.dart'; // Renamed from project_provider.dart
-import '../../providers/client_provider.dart';
+import '../../providers/task_provider.dart';
+// REMOVED: import '../../providers/client_provider.dart'; // No longer needed
 import '../../providers/user_provider.dart';
+import '../../providers/project_provider.dart'; // Import to get project details
+import '../../models/project.dart' as model_project; // Use alias
+import '../../providers/auth_provider.dart'; // Import to get current user
 
 class TaskAddScreen extends StatefulWidget {
-  // Renamed class
   final int projectId;
-  const TaskAddScreen({super.key, required this.projectId}); // Renamed class
+  const TaskAddScreen({super.key, required this.projectId});
 
   @override
-  State<TaskAddScreen> createState() => _TaskAddScreenState(); // Renamed state class
+  State<TaskAddScreen> createState() => _TaskAddScreenState();
 }
 
 class _TaskAddScreenState extends State<TaskAddScreen> {
-  // Renamed state class
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _taskNameController = TextEditingController();
-  final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _trackedTimeController = TextEditingController(
-    text: '0h 0m',
-  );
   final TextEditingController _statusController = TextEditingController(
     text: 'To Do',
   );
 
-  Client? _selectedClient;
+  // REMOVED: Client? _selectedClient;
   User? _assignedToUser;
   DateTime? _selectedStartDate;
   DateTime? _selectedDeadline;
 
-  final List<String> _categories = [
-    'Design',
-    'Frontend',
-    'Backend',
-    'Marketing',
-    'Content',
-    'DevOps',
-  ];
+  // REMOVED: Category logic as it was not in the new design
+  // final List<String> _categories = [...];
+  // final TextEditingController _categoryController = TextEditingController();
+
   final List<String> _statuses = [
     'To Do',
     'In Progress',
@@ -52,12 +45,19 @@ class _TaskAddScreenState extends State<TaskAddScreen> {
     'Completed',
     'Cancelled',
   ];
+  late Future<model_project.Project?>
+  _projectFuture; // To fetch project details
 
   @override
   void initState() {
     super.initState();
+    // Fetch the project details to get its clientId
+    _projectFuture = Provider.of<ProjectProvider>(
+      context,
+      listen: false,
+    ).getProjectById(widget.projectId);
+    // Fetch users for the dropdown
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ClientProvider>(context, listen: false).fetchClients();
       Provider.of<UserProvider>(context, listen: false).fetchUsers();
     });
   }
@@ -65,9 +65,7 @@ class _TaskAddScreenState extends State<TaskAddScreen> {
   @override
   void dispose() {
     _taskNameController.dispose();
-    _categoryController.dispose();
     _descriptionController.dispose();
-    _trackedTimeController.dispose();
     _statusController.dispose();
     super.dispose();
   }
@@ -81,15 +79,20 @@ class _TaskAddScreenState extends State<TaskAddScreen> {
       initialDate = _selectedStartDate ?? DateTime.now();
     } else {
       initialDate =
-          _selectedDeadline ?? DateTime.now().add(const Duration(days: 7));
+          _selectedDeadline ??
+          _selectedStartDate ??
+          DateTime.now().add(const Duration(days: 7));
     }
 
+    // --- THIS IS THE CODE THAT DISPLAYS THE CALENDAR ---
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365 * 2)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
     );
+    // --- END CALENDAR DISPLAY CODE ---
+
     if (picked != null) {
       setState(() {
         if (isStartDate) {
@@ -109,220 +112,125 @@ class _TaskAddScreenState extends State<TaskAddScreen> {
     }
   }
 
-  void _addTask() async {
-    // Renamed method
+  void _addTask(int clientId) async {
+    // Now accepts clientId
     if (_formKey.currentState!.validate()) {
-      if (_selectedClient == null ||
-          _assignedToUser == null ||
-          _selectedStartDate == null ||
-          _selectedDeadline == null) {
+      if (_assignedToUser == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill all required fields.')),
+          const SnackBar(content: Text('Please select an assigned user.')),
+        );
+        return;
+      }
+      if (_selectedStartDate == null || _selectedDeadline == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select both start and end dates.'),
+          ),
         );
         return;
       }
 
-      final taskProvider = Provider.of<TaskProvider>(
-        context,
-        listen: false,
-      ); // Use TaskProvider
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
       final newTask = Task(
-        // Use Task model and assign projectId
         projectId: widget.projectId,
         taskName: _taskNameController.text,
-
-        clientId: _selectedClient!.id!,
+        clientId: clientId, // Use the clientId from the parent project
         assignedToUserId: _assignedToUser!.id!,
         startDate: DateFormat('MMM dd, yyyy').format(_selectedStartDate!),
         deadline: DateFormat('MMM dd, yyyy').format(_selectedDeadline!),
         status: _statusController.text,
         description: _descriptionController.text,
-        trackedTime: _trackedTimeController.text,
+        // Category is no longer part of the model
       );
 
-      await taskProvider.addTask(newTask); // Use addTask method
+      await taskProvider.addTask(newTask);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Task Added Successfully!'),
-        ), // Updated message
-      );
-
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Task Added Successfully!')),
+        );
+        Navigator.pop(context);
+      }
     }
-  }
-
-  InputDecoration _getInputDecoration(String hintText) {
-    return InputDecoration(
-      hintText: hintText,
-      filled: true,
-      fillColor: Colors.grey[50],
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Colors.grey, width: 1),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Colors.grey, width: 1),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Colors.red, width: 1),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final clientProvider = Provider.of<ClientProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(
+      context,
+    ); // To get current user
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Add New Task'), // Changed title
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
+        title: const Text(
+          'Add New Task',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Add New Task', // Changed header
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
+      body: FutureBuilder<model_project.Project?>(
+        future: _projectFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(
+              child: Text('Project details could not be loaded.'),
+            );
+          }
+          final project = snapshot.data!;
 
-            Form(
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(32.0),
+            child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Task Name'),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _taskNameController,
-                    decoration: _getInputDecoration('Enter task name'),
-                    validator: (value) =>
-                        value!.isEmpty ? 'Enter task name' : null,
-                  ),
                   const SizedBox(height: 24),
 
-                  const Text('Client'),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<Client>(
-                    decoration: _getInputDecoration('Select Client'),
-                    value: _selectedClient,
-                    items: clientProvider.clients.map((Client client) {
-                      return DropdownMenuItem<Client>(
-                        value: client,
-                        child: Text(client.name),
-                      );
-                    }).toList(),
-                    onChanged: (Client? newValue) {
-                      setState(() {
-                        _selectedClient = newValue;
-                      });
-                    },
-                    validator: (value) =>
-                        value == null ? 'Please select a client' : null,
-                  ),
-                  const SizedBox(height: 24),
-
-                  const Text('Assigned To'),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<User>(
-                    decoration: _getInputDecoration('Select User'),
-                    value: _assignedToUser,
-                    items: userProvider.users.map((User user) {
-                      return DropdownMenuItem<User>(
-                        value: user,
-                        child: Text('${user.firstName} ${user.lastName}'),
-                      );
-                    }).toList(),
-                    onChanged: (User? newValue) {
-                      setState(() {
-                        _assignedToUser = newValue;
-                      });
-                    },
-                    validator: (value) =>
-                        value == null ? 'Please select a user' : null,
-                  ),
-                  const SizedBox(height: 24),
-
+                  // Task Name and Description Row
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Start Date'),
+                            const Text(
+                              'Task Name*',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             const SizedBox(height: 8),
-                            GestureDetector(
-                              onTap: () =>
-                                  _selectDate(context, isStartDate: true),
-                              child: AbsorbPointer(
-                                child: TextFormField(
-                                  controller: TextEditingController(
-                                    text: _selectedStartDate == null
-                                        ? ''
-                                        : DateFormat(
-                                            'MMM dd, yyyy',
-                                          ).format(_selectedStartDate!),
-                                  ),
-                                  decoration: _getInputDecoration('Select date')
-                                      .copyWith(
-                                        suffixIcon: const Icon(
-                                          Icons.calendar_today,
-                                          size: 20,
-                                        ),
-                                      ),
-                                  validator: (value) => value!.isEmpty
-                                      ? 'Select start date'
-                                      : null,
-                                ),
-                              ),
+                            TextFormField(
+                              controller: _taskNameController,
+                              decoration: _inputDecoration('Enter task name'),
+                              validator: (value) =>
+                                  value!.isEmpty ? 'Enter task name' : null,
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 24),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Deadline'),
+                            const Text('Description (Optional)'),
                             const SizedBox(height: 8),
-                            GestureDetector(
-                              onTap: () =>
-                                  _selectDate(context, isStartDate: false),
-                              child: AbsorbPointer(
-                                child: TextFormField(
-                                  controller: TextEditingController(
-                                    text: _selectedDeadline == null
-                                        ? ''
-                                        : DateFormat(
-                                            'MMM dd, yyyy',
-                                          ).format(_selectedDeadline!),
-                                  ),
-                                  decoration: _getInputDecoration('Select date')
-                                      .copyWith(
-                                        suffixIcon: const Icon(
-                                          Icons.calendar_today,
-                                          size: 20,
-                                        ),
-                                      ),
-                                  validator: (value) =>
-                                      value!.isEmpty ? 'Select deadline' : null,
-                                ),
-                              ),
+                            TextFormField(
+                              controller: _descriptionController,
+                              decoration: _inputDecoration('Enter description'),
+                              maxLines:
+                                  1, // Keep it single line to align with Task Name
                             ),
                           ],
                         ),
@@ -331,29 +239,152 @@ class _TaskAddScreenState extends State<TaskAddScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  const Text('Description (Optional)'),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _descriptionController,
-                    maxLines: 3,
-                    decoration: _getInputDecoration('Enter description'),
+                  // REMOVED: Client Selector
+
+                  // Assigned To Row
+                  Row(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.end, // Align items to the bottom
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Assigned To*',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<User>(
+                              decoration: _inputDecoration('Select User'),
+                              value: _assignedToUser,
+                              items: userProvider.users.map((User user) {
+                                return DropdownMenuItem<User>(
+                                  value: user,
+                                  child: Text(
+                                    '${user.firstName} ${user.lastName}',
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (User? newValue) {
+                                setState(() {
+                                  _assignedToUser = newValue;
+                                });
+                              },
+                              validator: (value) =>
+                                  value == null ? 'Please select a user' : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // "Assign to Me" Button
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: 1.0,
+                        ), // Align with form field bottom
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _assignedToUser = authProvider.currentUser;
+                            });
+                          },
+                          child: const Text('Assign to Me'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Dates Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Start Date*',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              readOnly: true,
+                              onTap: () =>
+                                  _selectDate(context, isStartDate: true),
+                              controller: TextEditingController(
+                                text: _selectedStartDate == null
+                                    ? ''
+                                    : DateFormat(
+                                        'MMM dd, yyyy',
+                                      ).format(_selectedStartDate!),
+                              ),
+                              decoration: _inputDecoration('Select date')
+                                  .copyWith(
+                                    suffixIcon: const Icon(
+                                      Icons.calendar_today,
+                                      size: 20,
+                                    ),
+                                  ),
+                              validator: (value) =>
+                                  value!.isEmpty ? 'Select start date' : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Deadline*',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              readOnly: true,
+                              onTap: () =>
+                                  _selectDate(context, isStartDate: false),
+                              controller: TextEditingController(
+                                text: _selectedDeadline == null
+                                    ? ''
+                                    : DateFormat(
+                                        'MMM dd, yyyy',
+                                      ).format(_selectedDeadline!),
+                              ),
+                              decoration: _inputDecoration('Select date')
+                                  .copyWith(
+                                    suffixIcon: const Icon(
+                                      Icons.calendar_today,
+                                      size: 20,
+                                    ),
+                                  ),
+                              validator: (value) =>
+                                  value!.isEmpty ? 'Select deadline' : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 32),
 
-                  Container(
+                  // Submit Button
+                  SizedBox(
                     width: double.infinity,
-                    margin: const EdgeInsets.only(top: 32.0),
+                    height: 50,
                     child: ElevatedButton(
-                      onPressed: _addTask, // Changed to call _addTask
+                      onPressed: () =>
+                          _addTask(project.clientId), // Pass the clientId
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFF4C527D),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8.0),
                         ),
                       ),
                       child: const Text(
-                        'Add Task', // Changed button text
+                        'Add Task',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white,
@@ -365,8 +396,24 @@ class _TaskAddScreenState extends State<TaskAddScreen> {
                 ],
               ),
             ),
-          ],
-        ),
+          );
+        },
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hintText) {
+    return InputDecoration(
+      hintText: hintText,
+      filled: true,
+      fillColor: Colors.grey[100],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 12.0,
+        horizontal: 16.0,
       ),
     );
   }

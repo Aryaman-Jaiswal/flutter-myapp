@@ -1,13 +1,13 @@
-import '../utils/constants.dart'; 
+import '../utils/constants.dart';
 
 class User {
   final int? id; // SQLite will auto-increment this
   final String firstName;
   final String lastName;
   final String email;
-  final String password; 
+  final String password;
   final String mobileNo;
-  UserRole role; 
+  UserRole role;
 
   User({
     this.id,
@@ -44,4 +44,16 @@ class User {
       role: UserRoleExtension.fromString(map['role']), // Convert string to enum
     );
   }
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is User &&
+        other.id == id &&
+        other.email ==
+            email; // Comparing by id and email is usually enough for uniqueness
+  }
+
+  @override
+  int get hashCode => id.hashCode ^ email.hashCode;
 }

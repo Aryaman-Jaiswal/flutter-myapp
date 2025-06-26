@@ -81,6 +81,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.2+11"
+  exception_templates:
+    dependency: transitive
+    description:
+      name: exception_templates
+      sha256: "517f7c770da690073663f867ee2057ae2f4ffb28edae9da9faa624aa29ac76eb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.1"
   fake_async:
     dependency: transitive
     description:
@@ -160,6 +168,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.20.2"
+  lazy_memo:
+    dependency: transitive
+    description:
+      name: lazy_memo
+      sha256: dcb30b4184a6d767e1d779d74ce784d752d38313b8fb4bad6b659ae7af4bb34d
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.3"
   leak_tracker:
     dependency: transitive
     description:
@@ -336,6 +352,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
+  serialize_enum:
+    dependency: transitive
+    description:
+      name: serialize_enum
+      sha256: c87b5577add3699a1fe3142e9685972fa2604a5cbbb30b1835e6837658cce74f
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.3"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -461,6 +485,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.4"
+  time_tracker:
+    dependency: "direct main"
+    description:
+      name: time_tracker
+      sha256: "423fa4eda14abd0219062db78abd0ae7545a3edcb908dcdf3d9973b15e20f1b3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   typed_data:
     dependency: transitive
     description:
