@@ -32,7 +32,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
   final TextEditingController _searchController = TextEditingController();
   late Future<model_project.Project?>
   _projectFuture; // Use alias for Project model
-  Map<int, Timer> _runningTimers = {};
 
   @override
   void initState() {
@@ -53,7 +52,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
-    _runningTimers.forEach((key, timer) => timer.cancel());
     super.dispose();
   }
 
@@ -602,15 +600,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
   // In lib/screens/projects/task_list_screen.dart
 
   Widget _buildProjectRow(Task task, Client client, User assignedUser) {
-    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-    final isTracking = _runningTimers.containsKey(task.id);
+    final taskProvider = Provider.of<TaskProvider>(context);
+    final isTracking = taskProvider.isTaskTracking(task.id!);
 
     // Calculate current display time
     int displaySeconds = task.totalTrackedSeconds;
-    if (task.trackingStartTime != null) {
-      displaySeconds += DateTime.now()
-          .difference(task.trackingStartTime!)
-          .inSeconds;
+    final startTime = taskProvider.getTaskStartTime(task.id!);
+    if (startTime != null) {
+      displaySeconds += DateTime.now().difference(startTime).inSeconds;
     }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -711,29 +708,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
               // Center the button in its column
               child: ElevatedButton(
                 onPressed: () {
-                  setState(() {
-                    if (isTracking) {
-                      // STOPPING
-                      task.totalTrackedSeconds = displaySeconds;
-                      task.trackingStartTime = null;
-                      _runningTimers[task.id!]?.cancel();
-                      _runningTimers.remove(task.id!);
-                      taskProvider.updateTaskTime(task);
-                    } else {
-                      // STARTING
-                      task.trackingStartTime = DateTime.now();
-                      _runningTimers[task.id!] = Timer.periodic(
-                        const Duration(seconds: 1),
-                        (timer) {
-                          if (mounted) {
-                            setState(() {});
-                          } else {
-                            timer.cancel();
-                          }
-                        },
-                      );
-                    }
-                  });
+                  taskProvider.toggleTimer(task);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isTracking ? Colors.redAccent : Colors.green,

@@ -15,7 +15,7 @@ class Task {
   final String description;
 
   int totalTrackedSeconds; // Total accumulated seconds
-  DateTime? trackingStartTime;
+
 
   Task({
     this.id,
@@ -29,7 +29,7 @@ class Task {
     required this.status,
     this.description = '',
     this.totalTrackedSeconds = 0, // Default to 0
-    this.trackingStartTime,
+  
   });
 
   // Convert Project object to Map for SQLite
