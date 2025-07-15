@@ -13,6 +13,7 @@ import '../screens/users/user_list_screen.dart'; // Import user list screen
 import '../screens/users/user_detail_screen.dart'; // Import user detail screen
 import '../screens/users/user_edit_screen.dart'; // Import user edit screen
 import '../screens/projects/project_list_screen.dart';
+import '../screens/reports/report_screen.dart';
 // ... (imports)
 import '../screens/projects/project_add_screen.dart';
 
@@ -122,6 +123,10 @@ class AppRouter {
                 builder: (context, state) => const ClientAddScreen(),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/reports',
+            builder: (context, state) => const ReportScreen(),
           ),
         ],
       ),

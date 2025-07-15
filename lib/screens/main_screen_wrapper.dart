@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
 
 import 'users/user_edit_screen.dart';
+import '../screens/reports/report_screen.dart';
 import 'auth/login_screen.dart';
 
 class MainScreenWrapper extends StatelessWidget {
@@ -24,6 +25,9 @@ class MainScreenWrapper extends StatelessWidget {
     }
     if (location.startsWith('/projects')) {
       return 2;
+    }
+    if (location.startsWith('/reports')) {
+      return 3;
     }
     return 1; // Default to Clients
   }
@@ -50,6 +54,11 @@ class MainScreenWrapper extends StatelessWidget {
         icon: const Icon(Icons.folder_outlined),
         selectedIcon: const Icon(Icons.folder),
         label: const Text('Projects'),
+      ),
+      NavigationRailDestination(
+        icon: const Icon(Icons.bar_chart_outlined),
+        selectedIcon: const Icon(Icons.bar_chart),
+        label: const Text('Reports'),
       ),
     ];
 
@@ -195,6 +204,9 @@ class MainScreenWrapper extends StatelessWidget {
                     break;
                   case 2:
                     context.go('/projects');
+                    break;
+                  case 3:
+                    context.go('/reports');
                     break;
                 }
               },
