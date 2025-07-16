@@ -1,7 +1,3 @@
-Of course! A good README is essential for any project. Here is a comprehensive and professional README file written in Markdown. You can copy and paste this directly into a README.md file in the root of your project repository.
-
-Generated markdown
-
 # Flutter Staffing & Project Management App
 
 A comprehensive, cross-platform application built with Flutter for managing users, clients, projects, and tasks. This application demonstrates a clean architecture using the Provider state management pattern, a local SQLite database, and a responsive UI designed for both desktop and web.
@@ -64,32 +60,32 @@ This project was developed as a case study in building a modern, feature-rich bu
     <td align="center"><strong>Sign-Up Screen</strong></td>
   </tr>
   <tr>
-    <td><img src="https://i.imgur.com/k2tZ6zF.png" alt="Login Screen" width="400"></td>
-    <td><img src="https://i.imgur.com/N6gQJ1B.png" alt="Sign-Up Screen" width="400"></td>
+    <td><img src="lib\assets\images\Login_Screen.png" alt="Login Screen" width="400"></td>
+    <td><img src="lib\assets\images\Signup.png" alt="Sign-Up Screen" width="400"></td>
   </tr>
   <tr>
     <td align="center"><strong>Client List</strong></td>
     <td align="center"><strong>Add New Client</strong></td>
   </tr>
   <tr>
-    <td><img src="https://i.imgur.com/FwWcR9b.png" alt="Client List Screen" width="400"></td>
-    <td><img src="https://i.imgur.com/H1gQj2r.png" alt="Add New Client Screen" width="400"></td>
+    <td><img src="lib\assets\images\clientlist_screen.png" alt="Client List Screen" width="400"></td>
+    <td><img src="lib\assets\images\addclient_screen.png" alt="Add New Client Screen" width="400"></td>
   </tr>
     <tr>
     <td align="center"><strong>Project List</strong></td>
     <td align="center"><strong>Task Board View</strong></td>
   </tr>
   <tr>
-    <td><img src="https://i.imgur.com/D4s2y1y.png" alt="Project List Screen" width="400"></td>
-    <td><img src="https://i.imgur.com/xT5R3B4.png" alt="Task Board View" width="400"></td>
+    <td><img src="lib\assets\images\projectlist_screen.png" alt="Project List Screen" width="400"></td>
+    <td><img src="lib\assets\images\taskview.png" alt="Task Board View" width="400"></td>
   </tr>
   <tr>
     <td align="center"><strong>Task Timeline View</strong></td>
     <td align="center"><strong>Reporting Screen</strong></td>
   </tr>
   <tr>
-    <td><img src="https://i.imgur.com/gYf7eXW.png" alt="Task Timeline View" width="400"></td>
-    <td><img src="https://i.imgur.com/E0n1R8f.png" alt="Reporting Screen" width="400"></td>
+    <td><img src="lib\assets\images\userlist.png" alt="User List Screen" width="400"></td>
+    <td><img src="lib\assets\images\report_screen.png" alt="Reporting Screen" width="400"></td>
   </tr>
 </table>
 
@@ -113,8 +109,8 @@ This project was developed as a case study in building a modern, feature-rich bu
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/your-username/your-repo-name.git
-    cd your-repo-name
+    git clone https://github.com/Aryaman-Jaiswal/flutter-myapp.git
+    cd myapp
     ```
 
 2.  **Install Flutter dependencies:**
